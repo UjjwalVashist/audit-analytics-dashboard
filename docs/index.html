@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audit Analytics Dashboard</title>
+<style>
+ :root { color-scheme: light dark; --bg:#fcfcfb; --fg:#0b0b0b; --muted:#52514e; --line:#e2e0da; --card:#f5f4f1; --accent:#2a78d6; }
+ @media (prefers-color-scheme: dark) { :root { --bg:#1a1a19; --fg:#fff; --muted:#c3c2b7; --line:#33332f; --card:#232321; --accent:#3987e5; } }
+ body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+ main { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
+ h1 { margin:0 0 4px; font-size:28px; } h2 { margin:36px 0 8px; font-size:19px; }
+ .muted, .more { color:var(--muted); } a { color:var(--accent); }
+ .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:20px 0; }
+ .tile { background:var(--card); border-radius:10px; padding:14px 16px; }
+ .tile b { display:block; font-size:26px; }
+ details { border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:8px 0; }
+ summary { cursor:pointer; } .n { float:right; color:var(--muted); }
+ .wrap { overflow-x:auto; } table.t { border-collapse:collapse; font-size:13px; width:100%; }
+ .t th, .t td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+ code { background:var(--card); padding:2px 5px; border-radius:4px; }
+</style></head><body><main>
+<h1>Audit Analytics Dashboard</h1>
+<p class="muted">Journal-entry testing on general-ledger data, as done in financial-statement audits. Results below are for a
+<b>synthetic</b> sample ledger (fiscal year 2025, SAP-style fields) with deliberately planted anomalies.
+Code and interactive app: <a href="https://github.com/Shooterak47/audit-analytics-dashboard">github.com/Shooterak47/audit-analytics-dashboard</a></p>
+<div class="tiles">
+ <div class="tile"><b>4,007</b>postings</div>
+ <div class="tile"><b>7,464,836 €</b>total amount</div>
+ <div class="tile"><b>184</b>postings flagged (4.6%)</div>
+ <div class="tile"><b>6</b>audit checks + Benford</div>
+</div>
+<h2>Findings</h2>
+<div class="wrap"><details><summary><b>Duplicate postings</b> <span class="n">24</span></summary><p>Paying the same invoice twice is a classic error - and a classic fraud.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>BELNR</th>
+      <th>BUKRS</th>
+      <th>GJAHR</th>
+      <th>BUDAT</th>
+      <th>HKONT</th>
+      <th>KONTO_TEXT</th>
+      <th>DMBTR</th>
+      <th>SHKZG</th>
+      <th>LIFNR</th>
+      <th>BKTXT</th>
+      <th>USNAM</th>
+      <th>FREIGABE</th>
+      <th>copies</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100001042</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-29</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>2,340.76</td>
+      <td>S</td>
+      <td>V10005</td>
+      <td>Rechnung V10005 04/2025</td>
+      <td>BECKER_M</td>
+      <td>MEYER_R</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100004006</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-29</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>2,340.76</td>
+      <td>S</td>
+      <td>V10005</td>
+      <td>Rechnung V10005 04/2025</td>
+      <td>BECKER_M</td>
+      <td>MEYER_R</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100002214</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-03</td>
+      <td>420000</td>
+      <td>Reisekosten</td>
+      <td>8,478.71</td>
+      <td>S</td>
+      <td>V10007</td>
+      <td>Rechnung V10007 04/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>BAUER_C</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100004002</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-03</td>
+      <td>420000</td>
+      <td>Reisekosten</td>
+      <td>8,478.71</td>
+      <td>S</td>
+      <td>V10007</td>
+      <td>Rechnung V10007 04/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>BAUER_C</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100003095</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-17</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>9,153.90</td>
+      <td>S</td>
+      <td>V10008</td>
+      <td>Rechnung V10008 02/2025</td>
+      <td>BECKER_M</td>
+      <td>MEYER_R</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100004004</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-17</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>9,153.90</td>
+      <td>S</td>
+      <td>V10008</td>
+      <td>Rechnung V10008 02/2025</td>
+      <td>BECKER_M</td>
+      <td>MEYER_R</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100003699</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-05-19</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>90.08</td>
+      <td>S</td>
+      <td>V10013</td>
+      <td>Rechnung V10013 05/2025</td>
+      <td>FISCHER_L</td>
+      <td>WAGNER_P</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100004005</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-05-19</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>90.08</td>
+      <td>S</td>
+      <td>V10013</td>
+      <td>Rechnung V10013 05/2025</td>
+      <td>FISCHER_L</td>
+      <td>WAGNER_P</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100003170</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-10-02</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>73.60</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 10/2025</td>
+      <td>BECKER_M</td>
+      <td>WAGNER_P</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>5100004003</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-10-02</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>73.60</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 10/2025</td>
+      <td>BECKER_M</td>
+      <td>WAGNER_P</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table><p class="more">… and 14 more in the app's Excel export.</p></details><details><summary><b>Gaps in document numbers</b> <span class="n">5</span></summary><p>Missing numbers can mean deleted postings; completeness must be explained.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>first_missing</th>
+      <th>last_missing</th>
+      <th>missing</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100000948</td>
+      <td>5100000948</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>5100001144</td>
+      <td>5100001144</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>5100001322</td>
+      <td>5100001322</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>5100002056</td>
+      <td>5100002056</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>5100003030</td>
+      <td>5100003030</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table></details><details><summary><b>Weekend and holiday postings</b> <span class="n">25</span></summary><p>Postings outside normal working days avoid the usual review and controls.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>BELNR</th>
+      <th>BUKRS</th>
+      <th>GJAHR</th>
+      <th>BUDAT</th>
+      <th>HKONT</th>
+      <th>KONTO_TEXT</th>
+      <th>DMBTR</th>
+      <th>SHKZG</th>
+      <th>LIFNR</th>
+      <th>BKTXT</th>
+      <th>USNAM</th>
+      <th>FREIGABE</th>
+      <th>reason</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100000339</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-01-01</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>3,129.10</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 07/2025</td>
+      <td>SCHMIDT_A</td>
+      <td>WAGNER_P</td>
+      <td>Neujahr</td>
+    </tr>
+    <tr>
+      <td>5100000340</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-18</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>1,305.08</td>
+      <td>S</td>
+      <td>V10038</td>
+      <td>Rechnung V10038 10/2025</td>
+      <td>WEBER_K</td>
+      <td>MEYER_R</td>
+      <td>Karfreitag</td>
+    </tr>
+    <tr>
+      <td>5100000372</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-05-01</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>4,131.26</td>
+      <td>S</td>
+      <td>V10013</td>
+      <td>Rechnung V10013 09/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>Erster Mai</td>
+    </tr>
+    <tr>
+      <td>5100000402</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-12-25</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>675.09</td>
+      <td>S</td>
+      <td>V10028</td>
+      <td>Rechnung V10028 10/2025</td>
+      <td>SCHMIDT_A</td>
+      <td>WAGNER_P</td>
+      <td>Erster Weihnachtstag</td>
+    </tr>
+    <tr>
+      <td>5100000703</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-12-26</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>94.70</td>
+      <td>S</td>
+      <td>V10032</td>
+      <td>Rechnung V10032 11/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>BAUER_C</td>
+      <td>Zweiter Weihnachtstag</td>
+    </tr>
+    <tr>
+      <td>5100001016</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-02</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>96.19</td>
+      <td>S</td>
+      <td>V10003</td>
+      <td>Rechnung V10003 12/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>BAUER_C</td>
+      <td>Sunday</td>
+    </tr>
+    <tr>
+      <td>5100001260</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-09</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>227.79</td>
+      <td>S</td>
+      <td>V10031</td>
+      <td>Rechnung V10031 08/2025</td>
+      <td>WEBER_K</td>
+      <td>BAUER_C</td>
+      <td>Sunday</td>
+    </tr>
+    <tr>
+      <td>5100001279</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-16</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>881.76</td>
+      <td>S</td>
+      <td>V10030</td>
+      <td>Rechnung V10030 08/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>Sunday</td>
+    </tr>
+    <tr>
+      <td>5100001668</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-23</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>494.33</td>
+      <td>S</td>
+      <td>V10039</td>
+      <td>Rechnung V10039 07/2025</td>
+      <td>KOCH_J</td>
+      <td>MEYER_R</td>
+      <td>Sunday</td>
+    </tr>
+    <tr>
+      <td>5100001747</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-30</td>
+      <td>460000</td>
+      <td>Werbekosten</td>
+      <td>195.74</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 01/2025</td>
+      <td>BECKER_M</td>
+      <td>MEYER_R</td>
+      <td>Sunday</td>
+    </tr>
+  </tbody>
+</table><p class="more">… and 15 more in the app's Excel export.</p></details><details><summary><b>Round amounts</b> <span class="n">30</span></summary><p>Real invoices rarely come to exact thousands; round figures suggest estimates or manual entries.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>BELNR</th>
+      <th>BUKRS</th>
+      <th>GJAHR</th>
+      <th>BUDAT</th>
+      <th>HKONT</th>
+      <th>KONTO_TEXT</th>
+      <th>DMBTR</th>
+      <th>SHKZG</th>
+      <th>LIFNR</th>
+      <th>BKTXT</th>
+      <th>USNAM</th>
+      <th>FREIGABE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100001150</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-11-14</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10024</td>
+      <td>Rechnung V10024 11/2025</td>
+      <td>WEBER_K</td>
+      <td>WAGNER_P</td>
+    </tr>
+    <tr>
+      <td>5100001210</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-07-15</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10007</td>
+      <td>Rechnung V10007 07/2025</td>
+      <td>KOCH_J</td>
+      <td>BAUER_C</td>
+    </tr>
+    <tr>
+      <td>5100001521</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-11-11</td>
+      <td>420000</td>
+      <td>Reisekosten</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10016</td>
+      <td>Rechnung V10016 11/2025</td>
+      <td>BECKER_M</td>
+      <td>BAUER_C</td>
+    </tr>
+    <tr>
+      <td>5100002607</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-17</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10035</td>
+      <td>Rechnung V10035 04/2025</td>
+      <td>WEBER_K</td>
+      <td>WAGNER_P</td>
+    </tr>
+    <tr>
+      <td>5100002611</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-06</td>
+      <td>410000</td>
+      <td>Bürobedarf</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10039</td>
+      <td>Rechnung V10039 02/2025</td>
+      <td>FISCHER_L</td>
+      <td>BAUER_C</td>
+    </tr>
+    <tr>
+      <td>5100003597</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-29</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10001</td>
+      <td>Rechnung V10001 04/2025</td>
+      <td>FISCHER_L</td>
+      <td>WAGNER_P</td>
+    </tr>
+    <tr>
+      <td>5100003683</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-25</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>50,000.00</td>
+      <td>S</td>
+      <td>V10005</td>
+      <td>Rechnung V10005 03/2025</td>
+      <td>FISCHER_L</td>
+      <td>WAGNER_P</td>
+    </tr>
+    <tr>
+      <td>5100000101</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-07-09</td>
+      <td>420000</td>
+      <td>Reisekosten</td>
+      <td>20,000.00</td>
+      <td>S</td>
+      <td>V10031</td>
+      <td>Rechnung V10031 07/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>BAUER_C</td>
+    </tr>
+    <tr>
+      <td>5100000678</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-10-30</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>20,000.00</td>
+      <td>S</td>
+      <td>V10036</td>
+      <td>Rechnung V10036 10/2025</td>
+      <td>WEBER_K</td>
+      <td>MEYER_R</td>
+    </tr>
+    <tr>
+      <td>5100000717</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-08-12</td>
+      <td>470000</td>
+      <td>Instandhaltung</td>
+      <td>20,000.00</td>
+      <td>S</td>
+      <td>V10039</td>
+      <td>Rechnung V10039 08/2025</td>
+      <td>WEBER_K</td>
+      <td>WAGNER_P</td>
+    </tr>
+  </tbody>
+</table><p class="more">… and 20 more in the app's Excel export.</p></details><details><summary><b>Just below the approval limit (5,000 EUR)</b> <span class="n">98</span></summary><p>Splitting invoices to stay under the limit avoids the second approval.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>BELNR</th>
+      <th>BUKRS</th>
+      <th>GJAHR</th>
+      <th>BUDAT</th>
+      <th>HKONT</th>
+      <th>KONTO_TEXT</th>
+      <th>DMBTR</th>
+      <th>SHKZG</th>
+      <th>LIFNR</th>
+      <th>BKTXT</th>
+      <th>USNAM</th>
+      <th>FREIGABE</th>
+      <th>user_count_in_band</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100001406</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-03-10</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,997.15</td>
+      <td>S</td>
+      <td>V10020</td>
+      <td>Rechnung V10020 03/2025</td>
+      <td>KOCH_J</td>
+      <td>BAUER_C</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100003130</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-19</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,990.46</td>
+      <td>S</td>
+      <td>V10038</td>
+      <td>Rechnung V10038 02/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100002447</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-01-30</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,988.86</td>
+      <td>S</td>
+      <td>V10033</td>
+      <td>Rechnung V10033 01/2025</td>
+      <td>KOCH_J</td>
+      <td>BAUER_C</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100001488</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-01-07</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,981.29</td>
+      <td>S</td>
+      <td>V10030</td>
+      <td>Rechnung V10030 01/2025</td>
+      <td>KOCH_J</td>
+      <td>MEYER_R</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100002685</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-07-08</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,969.86</td>
+      <td>S</td>
+      <td>V10037</td>
+      <td>Rechnung V10037 07/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100003701</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-11-21</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,957.75</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 11/2025</td>
+      <td>KOCH_J</td>
+      <td>MEYER_R</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100002775</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-04</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,955.79</td>
+      <td>S</td>
+      <td>V10022</td>
+      <td>Rechnung V10022 02/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100001012</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-05-27</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,952.70</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 05/2025</td>
+      <td>KOCH_J</td>
+      <td>WAGNER_P</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100001853</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-08-07</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,947.79</td>
+      <td>S</td>
+      <td>V10021</td>
+      <td>Rechnung V10021 08/2025</td>
+      <td>KOCH_J</td>
+      <td>MEYER_R</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <td>5100003769</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-10-31</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>4,942.87</td>
+      <td>S</td>
+      <td>V10003</td>
+      <td>Rechnung V10003 10/2025</td>
+      <td>KOCH_J</td>
+      <td>BAUER_C</td>
+      <td>68</td>
+    </tr>
+  </tbody>
+</table><p class="more">… and 88 more in the app's Excel export.</p></details><details><summary><b>Segregation of duties</b> <span class="n">8</span></summary><p>One person entering and approving the same posting breaks the four-eyes principle.</p><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>BELNR</th>
+      <th>BUKRS</th>
+      <th>GJAHR</th>
+      <th>BUDAT</th>
+      <th>HKONT</th>
+      <th>KONTO_TEXT</th>
+      <th>DMBTR</th>
+      <th>SHKZG</th>
+      <th>LIFNR</th>
+      <th>BKTXT</th>
+      <th>USNAM</th>
+      <th>FREIGABE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>5100002188</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-07-16</td>
+      <td>420000</td>
+      <td>Reisekosten</td>
+      <td>232.88</td>
+      <td>S</td>
+      <td>V10025</td>
+      <td>Rechnung V10025 07/2025</td>
+      <td>BECKER_M</td>
+      <td>BECKER_M</td>
+    </tr>
+    <tr>
+      <td>5100000153</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-11-19</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>33.80</td>
+      <td>S</td>
+      <td>V10034</td>
+      <td>Rechnung V10034 11/2025</td>
+      <td>FISCHER_L</td>
+      <td>FISCHER_L</td>
+    </tr>
+    <tr>
+      <td>5100003842</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-02-14</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>428.08</td>
+      <td>S</td>
+      <td>V10038</td>
+      <td>Rechnung V10038 02/2025</td>
+      <td>FISCHER_L</td>
+      <td>FISCHER_L</td>
+    </tr>
+    <tr>
+      <td>5100000291</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-08-19</td>
+      <td>430000</td>
+      <td>Beratungskosten</td>
+      <td>329.26</td>
+      <td>S</td>
+      <td>V10031</td>
+      <td>Rechnung V10031 08/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>HOFFMANN_S</td>
+    </tr>
+    <tr>
+      <td>5100002451</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-10-07</td>
+      <td>450000</td>
+      <td>Mietaufwand</td>
+      <td>209.32</td>
+      <td>S</td>
+      <td>V10006</td>
+      <td>Rechnung V10006 10/2025</td>
+      <td>HOFFMANN_S</td>
+      <td>HOFFMANN_S</td>
+    </tr>
+    <tr>
+      <td>5100000202</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-10</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>4,684.30</td>
+      <td>S</td>
+      <td>V10037</td>
+      <td>Rechnung V10037 04/2025</td>
+      <td>SCHMIDT_A</td>
+      <td>SCHMIDT_A</td>
+    </tr>
+    <tr>
+      <td>5100003678</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-04-24</td>
+      <td>400000</td>
+      <td>Materialaufwand</td>
+      <td>1,309.43</td>
+      <td>S</td>
+      <td>V10020</td>
+      <td>Rechnung V10020 04/2025</td>
+      <td>SCHMIDT_A</td>
+      <td>SCHMIDT_A</td>
+    </tr>
+    <tr>
+      <td>5100000491</td>
+      <td>1000</td>
+      <td>2025</td>
+      <td>2025-08-04</td>
+      <td>440000</td>
+      <td>IT-Dienstleistungen</td>
+      <td>2,797.44</td>
+      <td>S</td>
+      <td>V10017</td>
+      <td>Rechnung V10017 08/2025</td>
+      <td>WEBER_K</td>
+      <td>WEBER_K</td>
+    </tr>
+  </tbody>
+</table></details></div>
+<h2>Benford's law</h2>
+<p class="muted">Share of first digits of all amounts versus Benford's law. MAD 0.0051 → <b>close conformity</b>.</p>
+<div style="height:320px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-4.1.1.min.js" integrity="sha256-O24V1F27f8pb0glCkelh3cVHLNiHAJ5gCaVtq2aNch8=" crossorigin="anonymous"></script>                <div id="8aeaa839-10b5-42a5-998c-75362288257d" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("8aeaa839-10b5-42a5-998c-75362288257d")) {                    Plotly.newPlot(                        "8aeaa839-10b5-42a5-998c-75362288257d",                        [{"marker":{"color":"#2a78d6"},"name":"Observed","x":{"dtype":"i1","bdata":"AQIDBAUGBwgJ"},"y":{"dtype":"f8","bdata":"VgWhGMXj0j86nf+dwxbGP3qCH+7tvL4\u002fOFGVJkiWuz\u002fOWMd0iA62P7AG+Gt11q0\u002fHF9dpBR7rj9GXt72RcCqP1RDzah7sag\u002f"},"type":"bar"},{"line":{"color":"#eb6834","width":2},"mode":"lines+markers","name":"Benford's law","x":{"dtype":"i1","bdata":"AQIDBAUGBwgJ"},"y":{"dtype":"f8","bdata":"\u002f3mfUBNE0z\u002f8t2CLKIrGPwJ4vCv8+78\u002fDUiGOBjPuD\u002frJzveOEW0PwsiCcBsI7E\u002f8atm1x6xrT\u002fq7wnWqTCqPzKgApuGbac\u002f"},"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05}}},"margin":{"t":10,"b":40,"l":40,"r":10},"yaxis":{"tickformat":".0%"},"xaxis":{"dtick":1,"title":{"text":"First digit"}},"legend":{"orientation":"h","y":1.12},"height":320,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)"},                        {"displayModeBar": false, "responsive": true}                    )                };            </script>        </div>
+<p>The ledger as a whole conforms, but split by user one person stands out:</p>
+<div class="wrap"><table class="dataframe t">
+  <thead>
+    <tr style="text-align: right;">
+      <th>USNAM</th>
+      <th>postings</th>
+      <th>MAD</th>
+      <th>conformity</th>
+      <th>most_overrepresented_digit</th>
+      <th>excess_share</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>KOCH_J</td>
+      <td>731</td>
+      <td>0.0232</td>
+      <td>nonconformity</td>
+      <td>4</td>
+      <td>0.074</td>
+    </tr>
+    <tr>
+      <td>WEBER_K</td>
+      <td>668</td>
+      <td>0.0116</td>
+      <td>acceptable conformity</td>
+      <td>1</td>
+      <td>0.029</td>
+    </tr>
+    <tr>
+      <td>HOFFMANN_S</td>
+      <td>699</td>
+      <td>0.0106</td>
+      <td>acceptable conformity</td>
+      <td>5</td>
+      <td>0.016</td>
+    </tr>
+    <tr>
+      <td>SCHMIDT_A</td>
+      <td>619</td>
+      <td>0.0094</td>
+      <td>acceptable conformity</td>
+      <td>4</td>
+      <td>0.011</td>
+    </tr>
+    <tr>
+      <td>FISCHER_L</td>
+      <td>661</td>
+      <td>0.0083</td>
+      <td>acceptable conformity</td>
+      <td>7</td>
+      <td>0.018</td>
+    </tr>
+    <tr>
+      <td>BECKER_M</td>
+      <td>629</td>
+      <td>0.0057</td>
+      <td>close conformity</td>
+      <td>3</td>
+      <td>0.019</td>
+    </tr>
+  </tbody>
+</table></div>
+<p class="muted">KOCH_J has far too many amounts starting with 4 –
+the same user who posts many invoices just below the 5,000 € approval limit. In a real audit this would be followed up.</p>
+<h2>Run it yourself</h2>
+<p><code>pip install -r requirements.txt</code> then <code>streamlit run app.py</code>, and upload your own journal-entry CSV.</p>
+</main></body></html>

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+exception_list*.xlsx
+
+# internal notes for the CV tool - not part of the project
+BRIEF.md
+project_result.json
+LEARNINGS.md
