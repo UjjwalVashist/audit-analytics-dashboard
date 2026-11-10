@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 REQUIRED = ["BELNR", "BUDAT", "HKONT", "DMBTR", "LIFNR", "USNAM", "FREIGABE"]
+OPTIONAL = ["BKTXT", "CPUDT", "CPUTM"]  # description, entry date and time - the checks that need them skip without
 
 
 @dataclass
@@ -22,6 +23,8 @@ class CheckResult:
     title: str
     why: str          # why an auditor cares
     flagged: pd.DataFrame
+    weight: int = 1   # risk points each flagged posting gets (see risk_scores)
+    basis: str = ""   # where the selection criterion comes from
 
 
 def load_entries(source) -> pd.DataFrame:
@@ -32,7 +35,24 @@ def load_entries(source) -> pd.DataFrame:
         raise ValueError(f"Missing columns: {', '.join(missing)}")
     df["BUDAT"] = pd.to_datetime(df["BUDAT"])
     df["DMBTR"] = pd.to_numeric(df["DMBTR"])
+    if "CPUDT" in df:
+        df["CPUDT"] = pd.to_datetime(df["CPUDT"])
+    df["BKTXT"] = df["BKTXT"].fillna("").astype(str) if "BKTXT" in df else ""  # the duplicates test compares it
     return df
+
+
+def completeness(df: pd.DataFrame) -> dict:
+    """What the population contains, so it can be reconciled to the trial balance before testing.
+    (ISA 240 (Revised) makes the completeness of the journal-entry population an explicit step.)"""
+    first, last = int(df["BELNR"].min()), int(df["BELNR"].max())
+    months = df["BUDAT"].dt.to_period("M")
+    return {"postings": len(df), "total": float(df["DMBTR"].sum()),
+            "first_document": first, "last_document": last,
+            "missing_numbers": (last - first + 1) - df["BELNR"].nunique(),
+            "duplicate_keys": int(df["BELNR"].duplicated().sum()),
+            "first_date": df["BUDAT"].min(), "last_date": df["BUDAT"].max(),
+            "months_covered": months.nunique(), "users": df["USNAM"].nunique(),
+            "accounts": df["HKONT"].nunique()}
 
 
 def to_sqlite(df: pd.DataFrame) -> sqlite3.Connection:
@@ -102,6 +122,40 @@ def segregation_of_duties(con) -> pd.DataFrame:
     return pd.read_sql("SELECT * FROM je WHERE USNAM = FREIGABE ORDER BY USNAM, BELNR", con)
 
 
+def post_closing(df: pd.DataFrame) -> pd.DataFrame:
+    """Entered after the fiscal year ended, but dated back into it."""
+    if "CPUDT" not in df:
+        return df.iloc[0:0]
+    year_end = pd.Timestamp(year=int(df["BUDAT"].dt.year.max()), month=12, day=31)
+    out = df[(df["BUDAT"] <= year_end) & (df["CPUDT"] > year_end)].copy()
+    out["days_after_year_end"] = (out["CPUDT"] - year_end).dt.days
+    return out.sort_values("days_after_year_end", ascending=False)
+
+
+def after_hours(df: pd.DataFrame, start: int = 20, end: int = 6) -> pd.DataFrame:
+    """Entered late in the evening or at night (entry time CPUTM)."""
+    if "CPUTM" not in df:
+        return df.iloc[0:0]
+    hour = pd.to_numeric(df["CPUTM"].astype(str).str[:2], errors="coerce")
+    return df[(hour >= start) | (hour < end)].sort_values("CPUTM")
+
+
+def missing_description(df: pd.DataFrame, min_chars: int = 4) -> pd.DataFrame:
+    """No or almost no posting text, so nobody can tell what the entry is for."""
+    if not df["BKTXT"].str.strip().any():  # no descriptions in the file at all: nothing to judge
+        return df.iloc[0:0]
+    return df[df["BKTXT"].str.strip().str.len() < min_chars]
+
+
+def rare_users(con, share: float = 0.01) -> pd.DataFrame:
+    """Entries by people who hardly ever post - for example a manager who normally only approves."""
+    return pd.read_sql(f"""
+        SELECT je.*, u.n AS user_postings
+        FROM je JOIN (SELECT USNAM, COUNT(*) AS n FROM je GROUP BY USNAM) u USING (USNAM)
+        WHERE u.n < {share} * (SELECT COUNT(*) FROM je)
+        ORDER BY USNAM, BELNR""", con)
+
+
 BENFORD = np.log10(1 + 1 / np.arange(1, 10))  # expected share of first digits 1..9
 
 
@@ -137,23 +191,60 @@ def run_all(df: pd.DataFrame, limit: float = 5000.0) -> list[CheckResult]:
     return [
         CheckResult("duplicates", "Duplicate postings",
                     "Paying the same invoice twice is a classic error - and a classic fraud.",
-                    duplicates(con)),
-        CheckResult("number_gaps", "Gaps in document numbers",
-                    "Missing numbers can mean deleted postings; completeness must be explained.",
-                    number_gaps(con)),
-        CheckResult("weekend_holiday", "Weekend and holiday postings",
-                    "Postings outside normal working days avoid the usual review and controls.",
-                    weekend_holiday(df)),
-        CheckResult("round_amounts", "Round amounts",
-                    "Real invoices rarely come to exact thousands; round figures suggest estimates or manual entries.",
-                    round_amounts(con)),
-        CheckResult("below_limit", f"Just below the approval limit ({limit:,.0f} EUR)",
-                    "Splitting invoices to stay under the limit avoids the second approval.",
-                    below_limit(con, limit)),
+                    duplicates(con), 3, "Error and fraud indicator"),
         CheckResult("segregation_of_duties", "Segregation of duties",
                     "One person entering and approving the same posting breaks the four-eyes principle.",
-                    segregation_of_duties(con)),
+                    segregation_of_duties(con), 3, "Internal control (four-eyes principle)"),
+        CheckResult("post_closing", "Post-closing entries",
+                    "Entries made after year end but dated into the closed year can change the published result.",
+                    post_closing(df), 3, "ISA 240: entries at period end and post-closing"),
+        CheckResult("below_limit", f"Just below the approval limit ({limit:,.0f} EUR)",
+                    "Splitting invoices to stay under the limit avoids the second approval.",
+                    below_limit(con, limit), 2, "Control circumvention"),
+        CheckResult("rare_users", "Entries by rare posters",
+                    "People who normally don't post - such as senior managers - can override controls.",
+                    rare_users(con), 2, "ISA 240: entries by unexpected or senior staff"),
+        CheckResult("after_hours", "Entries made late at night",
+                    "Entries made outside working hours are less likely to be reviewed.",
+                    after_hours(df), 2, "ISA 240: entries at unusual times"),
+        CheckResult("weekend_holiday", "Weekend and holiday postings",
+                    "Postings outside normal working days avoid the usual review and controls.",
+                    weekend_holiday(df), 1, "ISA 240: entries at unusual times"),
+        CheckResult("round_amounts", "Round amounts",
+                    "Real invoices rarely come to exact thousands; round figures suggest estimates or manual entries.",
+                    round_amounts(con), 1, "ISA 240: round numbers"),
+        CheckResult("missing_description", "Entries without a description",
+                    "An entry nobody can explain can't be checked against a business reason.",
+                    missing_description(df), 1, "ISA 240: little or no description"),
+        CheckResult("number_gaps", "Gaps in document numbers",
+                    "Missing numbers can mean deleted postings; completeness must be explained.",
+                    number_gaps(con), 0, "Completeness of the population"),
     ]
+
+
+LEVELS = [(3, "High"), (2, "Medium"), (1, "Low")]  # minimum points -> risk level
+
+
+def risk_scores(df: pd.DataFrame, results: list[CheckResult]) -> pd.DataFrame:
+    """One row per flagged posting: risk points from every check that hit it, highest first.
+
+    Like a control-point score in audit software: a posting that fails several tests is
+    a better candidate for the sample than one that fails a single minor test."""
+    hits: dict[int, list[CheckResult]] = {}
+    for r in results:
+        if r.weight and "BELNR" in r.flagged:
+            for b in set(r.flagged["BELNR"]):
+                hits.setdefault(int(b), []).append(r)
+    rows = [{"BELNR": b, "score": sum(r.weight for r in rs), "tests": len(rs),
+             "hit": ", ".join(r.title for r in sorted(rs, key=lambda r: -r.weight)),
+             "keys": [r.key for r in rs]} for b, rs in hits.items()]
+    if not rows:
+        return pd.DataFrame(columns=["BELNR", "score", "level", "tests", "hit", "keys"])
+    out = pd.DataFrame(rows)
+    out["level"] = out["score"].map(lambda s: next(name for low, name in LEVELS if s >= low))
+    cols = [c for c in ["BUDAT", "USNAM", "HKONT", "KONTO_TEXT", "DMBTR", "LIFNR", "BKTXT"] if c in df]
+    out = out.merge(df[["BELNR", *cols]], on="BELNR", how="left")
+    return out.sort_values(["score", "DMBTR"], ascending=False, ignore_index=True)
 
 
 def exception_list(results: list[CheckResult]) -> bytes:
@@ -162,6 +253,7 @@ def exception_list(results: list[CheckResult]) -> bytes:
     with pd.ExcelWriter(buf, engine="openpyxl") as xl:
         pd.DataFrame({"Check": [r.title for r in results],
                       "Findings": [len(r.flagged) for r in results],
+                      "Risk points": [r.weight for r in results],
                       "Why it matters": [r.why for r in results]}).to_excel(xl, sheet_name="Summary", index=False)
         for r in results:
             r.flagged.to_excel(xl, sheet_name=r.key[:31], index=False)

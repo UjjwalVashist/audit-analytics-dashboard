@@ -24,6 +24,7 @@ ACCOUNTS = {  # G/L account -> description
 }
 VENDORS = [f"V{n:05d}" for n in range(10001, 10041)]
 USERS = ["SCHMIDT_A", "WEBER_K", "FISCHER_L", "BECKER_M", "HOFFMANN_S", "KOCH_J"]
+MANAGER = "SCHULZ_T"  # head of finance: approves, but normally doesn't post entries herself
 APPROVERS = ["MEYER_R", "WAGNER_P", "BAUER_C"]
 APPROVAL_LIMIT = 5000.0  # postings at or above this need a second approval level
 OUT = Path(__file__).with_name("journal_entries_sample.csv")
@@ -105,10 +106,45 @@ def generate(n: int = 4000, seed: int = 42) -> tuple[pd.DataFrame, dict]:
     df.loc[rows, "HKONT"] = "430000"
     planted["below_limit"] = sorted(df.loc[rows, "BELNR"].tolist())
 
+    # Entry date and time (CPUDT/CPUTM, as in table BKPF): normally the posting day, office hours.
+    # A second generator keeps every anomaly above exactly as it was before these fields existed.
+    extra = np.random.default_rng(seed + 1)
+    df["CPUDT"] = df["BUDAT"]
+    df["CPUTM"] = [f"{h:02d}:{m:02d}:{s:02d}" for h, m, s in
+                   zip(extra.integers(7, 18, len(df)), extra.integers(0, 60, len(df)), extra.integers(0, 60, len(df)))]
+
+    # 7. Post-closing entries: entered in January 2026 but dated into December 2025.
+    rows = take(10)
+    df.loc[rows, "BUDAT"] = pd.to_datetime(extra.choice(["2025-12-29", "2025-12-30", "2025-12-31"], 10))
+    df.loc[rows, "CPUDT"] = pd.to_datetime("2026-01-05") + pd.to_timedelta(extra.integers(0, 14, 10), unit="D")
+    planted["post_closing"] = sorted(df.loc[rows, "BELNR"].tolist())
+
+    # 8. Entries made late at night.
+    rows = take(15)
+    df.loc[rows, "CPUTM"] = [f"{h:02d}:{m:02d}:00" for h, m in
+                             zip(extra.choice([22, 23, 0, 1, 2, 3], 15), extra.integers(0, 60, 15))]
+    planted["after_hours"] = sorted(df.loc[rows, "BELNR"].tolist())
+
+    # 9. Entries without a description.
+    rows = take(12)
+    df.loc[rows, "BKTXT"] = ""
+    planted["missing_description"] = sorted(df.loc[rows, "BELNR"].tolist())
+
+    # 10. Management override (ISA 240): the head of finance, who rarely posts, books round amounts
+    #     after closing, late at night and without a description. Several tests hit the same entries.
+    rows = take(3)
+    df.loc[rows, ["USNAM", "BUDAT", "CPUTM", "BKTXT", "DMBTR", "HKONT"]] = \
+        [MANAGER, pd.Timestamp("2025-12-31"), "23:41:00", "", 25000.0, "430000"]
+    df.loc[rows, "CPUDT"] = pd.Timestamp("2026-01-09")
+    planted["override"] = sorted(df.loc[rows, "BELNR"].tolist())
+    rows = take(6)  # her other postings: normal, but she is still a rare poster
+    df.loc[rows, "USNAM"] = MANAGER
+    planted["rare_users"] = sorted(df.loc[rows, "BELNR"].tolist() + planted["override"])
+
     df["KONTO_TEXT"] = df["HKONT"].map(ACCOUNTS)
     df = df.sort_values("BELNR").reset_index(drop=True)
     cols = ["BELNR", "BUKRS", "GJAHR", "BUDAT", "HKONT", "KONTO_TEXT", "DMBTR", "SHKZG",
-            "LIFNR", "BKTXT", "USNAM", "FREIGABE"]
+            "LIFNR", "BKTXT", "USNAM", "FREIGABE", "CPUDT", "CPUTM"]
     return df[cols], planted
 
 

@@ -1,938 +1,351 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Audit Analytics Dashboard</title>
+<title>Audit Analytics – journal-entry testing</title>
+<meta name="description" content="Journal-entry testing app: nine ISA 240 tests on every posting, risk scoring, Benford's law. Demo on synthetic SAP-style data.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
- :root { color-scheme: light dark; --bg:#fcfcfb; --fg:#0b0b0b; --muted:#52514e; --line:#e2e0da; --card:#f5f4f1; --accent:#2a78d6; }
- @media (prefers-color-scheme: dark) { :root { --bg:#1a1a19; --fg:#fff; --muted:#c3c2b7; --line:#33332f; --card:#232321; --accent:#3987e5; } }
- body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
- main { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
- h1 { margin:0 0 4px; font-size:28px; } h2 { margin:36px 0 8px; font-size:19px; }
- .muted, .more { color:var(--muted); } a { color:var(--accent); }
- .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:20px 0; }
- .tile { background:var(--card); border-radius:10px; padding:14px 16px; }
- .tile b { display:block; font-size:26px; }
- details { border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:8px 0; }
- summary { cursor:pointer; } .n { float:right; color:var(--muted); }
- .wrap { overflow-x:auto; } table.t { border-collapse:collapse; font-size:13px; width:100%; }
- .t th, .t td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
- code { background:var(--card); padding:2px 5px; border-radius:4px; }
-</style></head><body><main>
-<h1>Audit Analytics Dashboard</h1>
-<p class="muted">Journal-entry testing on general-ledger data, as done in financial-statement audits. Results below are for a
-<b>synthetic</b> sample ledger (fiscal year 2025, SAP-style fields) with deliberately planted anomalies.
-Code and interactive app: <a href="https://github.com/UjjwalVashist/audit-analytics-dashboard">github.com/UjjwalVashist/audit-analytics-dashboard</a></p>
-<div class="tiles">
- <div class="tile"><b>4,007</b>postings</div>
- <div class="tile"><b>7,464,836 €</b>total amount</div>
- <div class="tile"><b>184</b>postings flagged (4.6%)</div>
- <div class="tile"><b>6</b>audit checks + Benford</div>
-</div>
-<h2>Findings</h2>
-<div class="wrap"><details><summary><b>Duplicate postings</b> <span class="n">24</span></summary><p>Paying the same invoice twice is a classic error - and a classic fraud.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>BELNR</th>
-      <th>BUKRS</th>
-      <th>GJAHR</th>
-      <th>BUDAT</th>
-      <th>HKONT</th>
-      <th>KONTO_TEXT</th>
-      <th>DMBTR</th>
-      <th>SHKZG</th>
-      <th>LIFNR</th>
-      <th>BKTXT</th>
-      <th>USNAM</th>
-      <th>FREIGABE</th>
-      <th>copies</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100001042</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-29</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>2,340.76</td>
-      <td>S</td>
-      <td>V10005</td>
-      <td>Rechnung V10005 04/2025</td>
-      <td>BECKER_M</td>
-      <td>MEYER_R</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100004006</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-29</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>2,340.76</td>
-      <td>S</td>
-      <td>V10005</td>
-      <td>Rechnung V10005 04/2025</td>
-      <td>BECKER_M</td>
-      <td>MEYER_R</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100002214</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-03</td>
-      <td>420000</td>
-      <td>Reisekosten</td>
-      <td>8,478.71</td>
-      <td>S</td>
-      <td>V10007</td>
-      <td>Rechnung V10007 04/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>BAUER_C</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100004002</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-03</td>
-      <td>420000</td>
-      <td>Reisekosten</td>
-      <td>8,478.71</td>
-      <td>S</td>
-      <td>V10007</td>
-      <td>Rechnung V10007 04/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>BAUER_C</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100003095</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-17</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>9,153.90</td>
-      <td>S</td>
-      <td>V10008</td>
-      <td>Rechnung V10008 02/2025</td>
-      <td>BECKER_M</td>
-      <td>MEYER_R</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100004004</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-17</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>9,153.90</td>
-      <td>S</td>
-      <td>V10008</td>
-      <td>Rechnung V10008 02/2025</td>
-      <td>BECKER_M</td>
-      <td>MEYER_R</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100003699</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-05-19</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>90.08</td>
-      <td>S</td>
-      <td>V10013</td>
-      <td>Rechnung V10013 05/2025</td>
-      <td>FISCHER_L</td>
-      <td>WAGNER_P</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100004005</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-05-19</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>90.08</td>
-      <td>S</td>
-      <td>V10013</td>
-      <td>Rechnung V10013 05/2025</td>
-      <td>FISCHER_L</td>
-      <td>WAGNER_P</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100003170</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-10-02</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>73.60</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 10/2025</td>
-      <td>BECKER_M</td>
-      <td>WAGNER_P</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>5100004003</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-10-02</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>73.60</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 10/2025</td>
-      <td>BECKER_M</td>
-      <td>WAGNER_P</td>
-      <td>2</td>
-    </tr>
-  </tbody>
-</table><p class="more">… and 14 more in the app's Excel export.</p></details><details><summary><b>Gaps in document numbers</b> <span class="n">5</span></summary><p>Missing numbers can mean deleted postings; completeness must be explained.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>first_missing</th>
-      <th>last_missing</th>
-      <th>missing</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100000948</td>
-      <td>5100000948</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>5100001144</td>
-      <td>5100001144</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>5100001322</td>
-      <td>5100001322</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>5100002056</td>
-      <td>5100002056</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>5100003030</td>
-      <td>5100003030</td>
-      <td>1</td>
-    </tr>
-  </tbody>
-</table></details><details><summary><b>Weekend and holiday postings</b> <span class="n">25</span></summary><p>Postings outside normal working days avoid the usual review and controls.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>BELNR</th>
-      <th>BUKRS</th>
-      <th>GJAHR</th>
-      <th>BUDAT</th>
-      <th>HKONT</th>
-      <th>KONTO_TEXT</th>
-      <th>DMBTR</th>
-      <th>SHKZG</th>
-      <th>LIFNR</th>
-      <th>BKTXT</th>
-      <th>USNAM</th>
-      <th>FREIGABE</th>
-      <th>reason</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100000339</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-01-01</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>3,129.10</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 07/2025</td>
-      <td>SCHMIDT_A</td>
-      <td>WAGNER_P</td>
-      <td>Neujahr</td>
-    </tr>
-    <tr>
-      <td>5100000340</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-18</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>1,305.08</td>
-      <td>S</td>
-      <td>V10038</td>
-      <td>Rechnung V10038 10/2025</td>
-      <td>WEBER_K</td>
-      <td>MEYER_R</td>
-      <td>Karfreitag</td>
-    </tr>
-    <tr>
-      <td>5100000372</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-05-01</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>4,131.26</td>
-      <td>S</td>
-      <td>V10013</td>
-      <td>Rechnung V10013 09/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>Erster Mai</td>
-    </tr>
-    <tr>
-      <td>5100000402</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-12-25</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>675.09</td>
-      <td>S</td>
-      <td>V10028</td>
-      <td>Rechnung V10028 10/2025</td>
-      <td>SCHMIDT_A</td>
-      <td>WAGNER_P</td>
-      <td>Erster Weihnachtstag</td>
-    </tr>
-    <tr>
-      <td>5100000703</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-12-26</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>94.70</td>
-      <td>S</td>
-      <td>V10032</td>
-      <td>Rechnung V10032 11/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>BAUER_C</td>
-      <td>Zweiter Weihnachtstag</td>
-    </tr>
-    <tr>
-      <td>5100001016</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-02</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>96.19</td>
-      <td>S</td>
-      <td>V10003</td>
-      <td>Rechnung V10003 12/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>BAUER_C</td>
-      <td>Sunday</td>
-    </tr>
-    <tr>
-      <td>5100001260</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-09</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>227.79</td>
-      <td>S</td>
-      <td>V10031</td>
-      <td>Rechnung V10031 08/2025</td>
-      <td>WEBER_K</td>
-      <td>BAUER_C</td>
-      <td>Sunday</td>
-    </tr>
-    <tr>
-      <td>5100001279</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-16</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>881.76</td>
-      <td>S</td>
-      <td>V10030</td>
-      <td>Rechnung V10030 08/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>Sunday</td>
-    </tr>
-    <tr>
-      <td>5100001668</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-23</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>494.33</td>
-      <td>S</td>
-      <td>V10039</td>
-      <td>Rechnung V10039 07/2025</td>
-      <td>KOCH_J</td>
-      <td>MEYER_R</td>
-      <td>Sunday</td>
-    </tr>
-    <tr>
-      <td>5100001747</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-30</td>
-      <td>460000</td>
-      <td>Werbekosten</td>
-      <td>195.74</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 01/2025</td>
-      <td>BECKER_M</td>
-      <td>MEYER_R</td>
-      <td>Sunday</td>
-    </tr>
-  </tbody>
-</table><p class="more">… and 15 more in the app's Excel export.</p></details><details><summary><b>Round amounts</b> <span class="n">30</span></summary><p>Real invoices rarely come to exact thousands; round figures suggest estimates or manual entries.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>BELNR</th>
-      <th>BUKRS</th>
-      <th>GJAHR</th>
-      <th>BUDAT</th>
-      <th>HKONT</th>
-      <th>KONTO_TEXT</th>
-      <th>DMBTR</th>
-      <th>SHKZG</th>
-      <th>LIFNR</th>
-      <th>BKTXT</th>
-      <th>USNAM</th>
-      <th>FREIGABE</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100001150</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-11-14</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10024</td>
-      <td>Rechnung V10024 11/2025</td>
-      <td>WEBER_K</td>
-      <td>WAGNER_P</td>
-    </tr>
-    <tr>
-      <td>5100001210</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-07-15</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10007</td>
-      <td>Rechnung V10007 07/2025</td>
-      <td>KOCH_J</td>
-      <td>BAUER_C</td>
-    </tr>
-    <tr>
-      <td>5100001521</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-11-11</td>
-      <td>420000</td>
-      <td>Reisekosten</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10016</td>
-      <td>Rechnung V10016 11/2025</td>
-      <td>BECKER_M</td>
-      <td>BAUER_C</td>
-    </tr>
-    <tr>
-      <td>5100002607</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-17</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10035</td>
-      <td>Rechnung V10035 04/2025</td>
-      <td>WEBER_K</td>
-      <td>WAGNER_P</td>
-    </tr>
-    <tr>
-      <td>5100002611</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-06</td>
-      <td>410000</td>
-      <td>Bürobedarf</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10039</td>
-      <td>Rechnung V10039 02/2025</td>
-      <td>FISCHER_L</td>
-      <td>BAUER_C</td>
-    </tr>
-    <tr>
-      <td>5100003597</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-29</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10001</td>
-      <td>Rechnung V10001 04/2025</td>
-      <td>FISCHER_L</td>
-      <td>WAGNER_P</td>
-    </tr>
-    <tr>
-      <td>5100003683</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-25</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>50,000.00</td>
-      <td>S</td>
-      <td>V10005</td>
-      <td>Rechnung V10005 03/2025</td>
-      <td>FISCHER_L</td>
-      <td>WAGNER_P</td>
-    </tr>
-    <tr>
-      <td>5100000101</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-07-09</td>
-      <td>420000</td>
-      <td>Reisekosten</td>
-      <td>20,000.00</td>
-      <td>S</td>
-      <td>V10031</td>
-      <td>Rechnung V10031 07/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>BAUER_C</td>
-    </tr>
-    <tr>
-      <td>5100000678</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-10-30</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>20,000.00</td>
-      <td>S</td>
-      <td>V10036</td>
-      <td>Rechnung V10036 10/2025</td>
-      <td>WEBER_K</td>
-      <td>MEYER_R</td>
-    </tr>
-    <tr>
-      <td>5100000717</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-08-12</td>
-      <td>470000</td>
-      <td>Instandhaltung</td>
-      <td>20,000.00</td>
-      <td>S</td>
-      <td>V10039</td>
-      <td>Rechnung V10039 08/2025</td>
-      <td>WEBER_K</td>
-      <td>WAGNER_P</td>
-    </tr>
-  </tbody>
-</table><p class="more">… and 20 more in the app's Excel export.</p></details><details><summary><b>Just below the approval limit (5,000 EUR)</b> <span class="n">98</span></summary><p>Splitting invoices to stay under the limit avoids the second approval.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>BELNR</th>
-      <th>BUKRS</th>
-      <th>GJAHR</th>
-      <th>BUDAT</th>
-      <th>HKONT</th>
-      <th>KONTO_TEXT</th>
-      <th>DMBTR</th>
-      <th>SHKZG</th>
-      <th>LIFNR</th>
-      <th>BKTXT</th>
-      <th>USNAM</th>
-      <th>FREIGABE</th>
-      <th>user_count_in_band</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100001406</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-03-10</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,997.15</td>
-      <td>S</td>
-      <td>V10020</td>
-      <td>Rechnung V10020 03/2025</td>
-      <td>KOCH_J</td>
-      <td>BAUER_C</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100003130</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-19</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,990.46</td>
-      <td>S</td>
-      <td>V10038</td>
-      <td>Rechnung V10038 02/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100002447</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-01-30</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,988.86</td>
-      <td>S</td>
-      <td>V10033</td>
-      <td>Rechnung V10033 01/2025</td>
-      <td>KOCH_J</td>
-      <td>BAUER_C</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100001488</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-01-07</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,981.29</td>
-      <td>S</td>
-      <td>V10030</td>
-      <td>Rechnung V10030 01/2025</td>
-      <td>KOCH_J</td>
-      <td>MEYER_R</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100002685</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-07-08</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,969.86</td>
-      <td>S</td>
-      <td>V10037</td>
-      <td>Rechnung V10037 07/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100003701</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-11-21</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,957.75</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 11/2025</td>
-      <td>KOCH_J</td>
-      <td>MEYER_R</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100002775</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-04</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,955.79</td>
-      <td>S</td>
-      <td>V10022</td>
-      <td>Rechnung V10022 02/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100001012</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-05-27</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,952.70</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 05/2025</td>
-      <td>KOCH_J</td>
-      <td>WAGNER_P</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100001853</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-08-07</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,947.79</td>
-      <td>S</td>
-      <td>V10021</td>
-      <td>Rechnung V10021 08/2025</td>
-      <td>KOCH_J</td>
-      <td>MEYER_R</td>
-      <td>68</td>
-    </tr>
-    <tr>
-      <td>5100003769</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-10-31</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>4,942.87</td>
-      <td>S</td>
-      <td>V10003</td>
-      <td>Rechnung V10003 10/2025</td>
-      <td>KOCH_J</td>
-      <td>BAUER_C</td>
-      <td>68</td>
-    </tr>
-  </tbody>
-</table><p class="more">… and 88 more in the app's Excel export.</p></details><details><summary><b>Segregation of duties</b> <span class="n">8</span></summary><p>One person entering and approving the same posting breaks the four-eyes principle.</p><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>BELNR</th>
-      <th>BUKRS</th>
-      <th>GJAHR</th>
-      <th>BUDAT</th>
-      <th>HKONT</th>
-      <th>KONTO_TEXT</th>
-      <th>DMBTR</th>
-      <th>SHKZG</th>
-      <th>LIFNR</th>
-      <th>BKTXT</th>
-      <th>USNAM</th>
-      <th>FREIGABE</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>5100002188</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-07-16</td>
-      <td>420000</td>
-      <td>Reisekosten</td>
-      <td>232.88</td>
-      <td>S</td>
-      <td>V10025</td>
-      <td>Rechnung V10025 07/2025</td>
-      <td>BECKER_M</td>
-      <td>BECKER_M</td>
-    </tr>
-    <tr>
-      <td>5100000153</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-11-19</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>33.80</td>
-      <td>S</td>
-      <td>V10034</td>
-      <td>Rechnung V10034 11/2025</td>
-      <td>FISCHER_L</td>
-      <td>FISCHER_L</td>
-    </tr>
-    <tr>
-      <td>5100003842</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-02-14</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>428.08</td>
-      <td>S</td>
-      <td>V10038</td>
-      <td>Rechnung V10038 02/2025</td>
-      <td>FISCHER_L</td>
-      <td>FISCHER_L</td>
-    </tr>
-    <tr>
-      <td>5100000291</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-08-19</td>
-      <td>430000</td>
-      <td>Beratungskosten</td>
-      <td>329.26</td>
-      <td>S</td>
-      <td>V10031</td>
-      <td>Rechnung V10031 08/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>HOFFMANN_S</td>
-    </tr>
-    <tr>
-      <td>5100002451</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-10-07</td>
-      <td>450000</td>
-      <td>Mietaufwand</td>
-      <td>209.32</td>
-      <td>S</td>
-      <td>V10006</td>
-      <td>Rechnung V10006 10/2025</td>
-      <td>HOFFMANN_S</td>
-      <td>HOFFMANN_S</td>
-    </tr>
-    <tr>
-      <td>5100000202</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-10</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>4,684.30</td>
-      <td>S</td>
-      <td>V10037</td>
-      <td>Rechnung V10037 04/2025</td>
-      <td>SCHMIDT_A</td>
-      <td>SCHMIDT_A</td>
-    </tr>
-    <tr>
-      <td>5100003678</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-04-24</td>
-      <td>400000</td>
-      <td>Materialaufwand</td>
-      <td>1,309.43</td>
-      <td>S</td>
-      <td>V10020</td>
-      <td>Rechnung V10020 04/2025</td>
-      <td>SCHMIDT_A</td>
-      <td>SCHMIDT_A</td>
-    </tr>
-    <tr>
-      <td>5100000491</td>
-      <td>1000</td>
-      <td>2025</td>
-      <td>2025-08-04</td>
-      <td>440000</td>
-      <td>IT-Dienstleistungen</td>
-      <td>2,797.44</td>
-      <td>S</td>
-      <td>V10017</td>
-      <td>Rechnung V10017 08/2025</td>
-      <td>WEBER_K</td>
-      <td>WEBER_K</td>
-    </tr>
-  </tbody>
-</table></details></div>
-<h2>Benford's law</h2>
-<p class="muted">Share of first digits of all amounts versus Benford's law. MAD 0.0051 → <b>close conformity</b>.</p>
-<div style="height:320px; width:100%;">                        <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
-        <script charset="utf-8" src="https://cdn.plot.ly/plotly-4.1.1.min.js" integrity="sha256-O24V1F27f8pb0glCkelh3cVHLNiHAJ5gCaVtq2aNch8=" crossorigin="anonymous"></script>                <div id="b5537c03-cd71-4abb-b441-a146d60f1c6c" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("b5537c03-cd71-4abb-b441-a146d60f1c6c")) {                    Plotly.newPlot(                        "b5537c03-cd71-4abb-b441-a146d60f1c6c",                        [{"marker":{"color":"#2a78d6"},"name":"Observed","x":{"dtype":"i1","bdata":"AQIDBAUGBwgJ"},"y":{"dtype":"f8","bdata":"VgWhGMXj0j86nf+dwxbGP3qCH+7tvL4\u002fOFGVJkiWuz\u002fOWMd0iA62P7AG+Gt11q0\u002fHF9dpBR7rj9GXt72RcCqP1RDzah7sag\u002f"},"type":"bar"},{"line":{"color":"#eb6834","width":2},"mode":"lines+markers","name":"Benford's law","x":{"dtype":"i1","bdata":"AQIDBAUGBwgJ"},"y":{"dtype":"f8","bdata":"\u002f3mfUBNE0z\u002f8t2CLKIrGPwJ4vCv8+78\u002fDUiGOBjPuD\u002frJzveOEW0PwsiCcBsI7E\u002f8atm1x6xrT\u002fq7wnWqTCqPzKgApuGbac\u002f"},"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05}}},"margin":{"t":10,"b":40,"l":40,"r":10},"yaxis":{"tickformat":".0%"},"xaxis":{"dtick":1,"title":{"text":"First digit"}},"legend":{"orientation":"h","y":1.12},"height":320,"paper_bgcolor":"rgba(0,0,0,0)","plot_bgcolor":"rgba(0,0,0,0)"},                        {"displayModeBar": false, "responsive": true}                    )                };            </script>        </div>
-<p>The ledger as a whole conforms, but split by user one person stands out:</p>
-<div class="wrap"><table class="dataframe t">
-  <thead>
-    <tr style="text-align: right;">
-      <th>USNAM</th>
-      <th>postings</th>
-      <th>MAD</th>
-      <th>conformity</th>
-      <th>most_overrepresented_digit</th>
-      <th>excess_share</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>KOCH_J</td>
-      <td>731</td>
-      <td>0.0232</td>
-      <td>nonconformity</td>
-      <td>4</td>
-      <td>0.074</td>
-    </tr>
-    <tr>
-      <td>WEBER_K</td>
-      <td>668</td>
-      <td>0.0116</td>
-      <td>acceptable conformity</td>
-      <td>1</td>
-      <td>0.029</td>
-    </tr>
-    <tr>
-      <td>HOFFMANN_S</td>
-      <td>699</td>
-      <td>0.0106</td>
-      <td>acceptable conformity</td>
-      <td>5</td>
-      <td>0.016</td>
-    </tr>
-    <tr>
-      <td>SCHMIDT_A</td>
-      <td>619</td>
-      <td>0.0094</td>
-      <td>acceptable conformity</td>
-      <td>4</td>
-      <td>0.011</td>
-    </tr>
-    <tr>
-      <td>FISCHER_L</td>
-      <td>661</td>
-      <td>0.0083</td>
-      <td>acceptable conformity</td>
-      <td>7</td>
-      <td>0.018</td>
-    </tr>
-    <tr>
-      <td>BECKER_M</td>
-      <td>629</td>
-      <td>0.0057</td>
-      <td>close conformity</td>
-      <td>3</td>
-      <td>0.019</td>
-    </tr>
-  </tbody>
-</table></div>
-<p class="muted">KOCH_J has far too many amounts starting with 4 –
-the same user who posts many invoices just below the 5,000 € approval limit. In a real audit this would be followed up.</p>
-<h2>Run it yourself</h2>
-<p><code>pip install -r requirements.txt</code> then <code>streamlit run app.py</code>, and upload your own journal-entry CSV.</p>
-</main></body></html>
+:root { --bg:#f6f7f9; --panel:#fff; --fg:#0f172a; --muted:#64748b; --line:#e5e7eb; --soft:#f1f5f9; --side:#0b1220; --side-fg:#cbd5e1;
+  --accent:#2563eb; --high:#dc2626; --med:#f59e0b; --low:#94a3b8; --good:#16a34a; }
+* { box-sizing:border-box; }
+html, body { height:100%; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 Geist,-apple-system,"Segoe UI",sans-serif; display:flex; }
+a { color:var(--accent); text-decoration:none; }
+.mono { font-family:"Geist Mono",ui-monospace,monospace; }
+aside { width:240px; flex:none; background:var(--side); color:var(--side-fg); display:flex; flex-direction:column; padding:18px 14px; position:sticky; top:0; height:100vh; }
+.brand { display:flex; align-items:center; gap:10px; color:#fff; font-weight:600; font-size:15px; padding:2px 8px 18px; }
+.logo { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#3b82f6,#8b5cf6); display:grid; place-items:center; font:600 12px "Geist Mono",monospace; color:#fff; }
+.eng { background:#111a2e; border:1px solid #1e293b; border-radius:10px; padding:10px 12px; margin-bottom:16px; font-size:12px; }
+.eng b { color:#fff; font-size:13px; display:block; } .eng span { color:#94a3b8; }
+.eng .pill { display:inline-block; margin-top:6px; background:#422006; color:#fbbf24; border-radius:999px; padding:1px 8px; font-size:11px; }
+aside nav { display:flex; flex-direction:column; gap:2px; }
+aside nav a { display:flex; align-items:center; gap:10px; color:var(--side-fg); padding:8px 10px; border-radius:8px; font-size:13.5px; }
+aside nav a:hover { background:#111a2e; color:#fff; }
+aside nav a.on { background:#1e293b; color:#fff; }
+aside nav em { margin-left:auto; font-style:normal; font-size:11px; background:#7f1d1d; color:#fecaca; border-radius:999px; padding:0 7px; }
+aside nav a[data-view=tests] em { background:#1e293b; color:#cbd5e1; }
+.side-foot { margin-top:auto; font-size:12px; color:#64748b; padding:0 8px; }
+.side-foot a { color:#cbd5e1; display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+.app { flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar { height:58px; flex:none; background:var(--panel); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; padding:0 24px; position:sticky; top:0; z-index:5; }
+.crumbs { color:var(--muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .crumbs b { color:var(--fg); font-weight:500; }
+.topbar .sp { flex:1; }
+.status { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); white-space:nowrap; }
+.status i { width:8px; height:8px; border-radius:50%; background:var(--good); }
+.btn { border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:8px; padding:7px 12px; font:inherit; font-size:13px; cursor:pointer; display:inline-flex; gap:8px; align-items:center; white-space:nowrap; }
+.btn.primary { background:var(--fg); color:#fff; border-color:var(--fg); }
+main { padding:24px; max-width:1360px; width:100%; }
+.view { display:none; } .view.on { display:block; animation:fade .18s ease; }
+@keyframes fade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+.vh { display:flex; align-items:end; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+.vh h1 { font-size:22px; letter-spacing:-.02em; margin:0; } .vh p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+.grid { display:grid; gap:16px; }
+.k4 { grid-template-columns:repeat(4,minmax(0,1fr)); } .c21 { grid-template-columns:minmax(0,2fr) minmax(0,1fr); }
+.c12 { grid-template-columns:minmax(0,1fr) minmax(0,2fr); } .c11 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.c3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; min-width:0; }
+.card h3 { margin:0; font-size:13.5px; font-weight:600; } .card .ch { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; }
+.card .ch small { color:var(--muted); font-size:12px; }
+.kpi .l { color:var(--muted); font-size:12.5px; display:flex; justify-content:space-between; }
+.kpi .v { font-size:28px; font-weight:600; letter-spacing:-.02em; margin:6px 0 8px; }
+.kpi .meter { height:6px; border-radius:3px; background:var(--soft); overflow:hidden; } .kpi .meter span { display:block; height:100%; }
+.kpi .f { font-size:12px; color:var(--muted); margin-top:8px; }
+.alert { display:flex; gap:12px; align-items:center; background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; border-radius:12px; padding:12px 16px; margin-bottom:16px; }
+.alert svg { flex:none; color:var(--high); } .alert .sp { flex:1; } .alert b { font-weight:600; }
+.chart { position:relative; height:240px; } .chart.tall { height:300px; } .chart.small { height:210px; }
+.donut { display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center; }
+.legend div { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--soft); font-size:13px; }
+.legend div:last-child { border:0; } .legend b { margin-left:auto; } .dot { width:9px; height:9px; border-radius:3px; flex:none; }
+.top li { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid var(--soft); cursor:pointer; }
+.top li:hover .who { color:var(--accent); } ul.top { list-style:none; margin:0; padding:0; } .top li:last-child { border:0; }
+.who { font-weight:500; } .sub { color:var(--muted); font-size:12px; }
+.score { min-width:34px; height:26px; border-radius:7px; display:grid; place-items:center; font-weight:600; font-size:13px; }
+.High { background:#fee2e2; color:#b91c1c; } .Medium { background:#fef3c7; color:#b45309; } .Low { background:#f1f5f9; color:#475569; }
+.badge { display:inline-block; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:500; }
+.heat { display:grid; gap:3px; font-size:11.5px; }
+.heat .c { border-radius:5px; height:30px; display:grid; place-items:center; font-variant-numeric:tabular-nums; }
+.heat .h { color:var(--muted); display:flex; align-items:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.heat .u { color:var(--muted); text-align:center; font-size:11px; padding-top:4px; overflow:hidden; text-overflow:ellipsis; }
+.toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.seg { display:inline-flex; background:var(--soft); border-radius:9px; padding:3px; flex-wrap:wrap; }
+.seg button { border:0; background:none; font:inherit; font-size:13px; padding:5px 12px; border-radius:7px; cursor:pointer; color:var(--muted); }
+.seg button.on { background:var(--panel); color:var(--fg); box-shadow:0 1px 2px rgb(0 0 0 / .08); }
+.toolbar select, .toolbar input { font:inherit; font-size:13px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:var(--panel); }
+.toolbar input { min-width:240px; flex:1; }
+.tbl { overflow:auto; max-height:calc(100vh - 230px); border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+table { border-collapse:collapse; width:100%; font-size:13px; }
+th { position:sticky; top:0; background:#f8fafc; text-align:left; font-weight:500; color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap; }
+td { padding:10px 12px; border-bottom:1px solid var(--soft); white-space:nowrap; }
+tbody tr { cursor:pointer; } tbody tr:hover { background:#f8fafc; }
+td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+.tags span { display:inline-block; background:var(--soft); border-radius:5px; padding:1px 7px; margin-right:4px; font-size:11.5px; color:#334155; }
+.foot { color:var(--muted); font-size:12.5px; margin-top:10px; }
+.tcard { cursor:pointer; transition:border-color .15s, box-shadow .15s; display:flex; flex-direction:column; gap:10px; }
+.tcard:hover { border-color:#93c5fd; box-shadow:0 4px 16px rgb(37 99 235 / .08); }
+.tcard .row { display:flex; justify-content:space-between; align-items:center; }
+.tcard .n { font-size:26px; font-weight:600; letter-spacing:-.02em; }
+.pts { font-size:11.5px; border-radius:6px; padding:2px 8px; }
+.pts.w3 { background:#fee2e2; color:#b91c1c; } .pts.w2 { background:#fef3c7; color:#b45309; } .pts.w1, .pts.w0 { background:var(--soft); color:#475569; }
+.bar { height:5px; background:var(--soft); border-radius:3px; overflow:hidden; } .bar span { display:block; height:100%; background:var(--accent); }
+.tcard .basis { font-size:12px; color:var(--muted); }
+.checks li { display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid var(--soft); }
+ul.checks { list-style:none; margin:0; padding:0; } .checks li:last-child { border:0; }
+.ok { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; background:#dcfce7; color:var(--good); }
+.ok.w { background:#ffedd5; color:#c2410c; }
+.steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+.steps .card b { display:block; margin:8px 0 4px; } .steps .card p { margin:0; color:var(--muted); font-size:13px; }
+.num { font:500 11.5px "Geist Mono",monospace; color:var(--accent); background:#eff6ff; border-radius:6px; padding:2px 7px; }
+.drawer-bg { position:fixed; inset:0; background:rgb(15 23 42 / .35); opacity:0; pointer-events:none; transition:opacity .2s; z-index:20; }
+.drawer { position:fixed; top:0; right:0; height:100vh; width:min(460px,100vw); background:var(--panel); z-index:21; transform:translateX(100%); transition:transform .22s ease; display:flex; flex-direction:column; box-shadow:-12px 0 32px rgb(0 0 0 / .12); }
+body.open .drawer { transform:none; } body.open .drawer-bg { opacity:1; pointer-events:auto; }
+.dh { padding:18px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:start; }
+.dh h2 { margin:4px 0 0; font-size:18px; } .x { border:0; background:var(--soft); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:16px; }
+.db { padding:18px 22px; overflow:auto; }
+dl { display:grid; grid-template-columns:120px 1fr; gap:8px 12px; margin:0 0 18px; font-size:13px; } dt { color:var(--muted); } dd { margin:0; }
+.hit { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+.hit .row { display:flex; justify-content:space-between; align-items:center; gap:10px; } .hit p { margin:4px 0 0; color:var(--muted); font-size:12.5px; }
+.list li { padding:7px 0; border-bottom:1px solid var(--soft); display:flex; justify-content:space-between; gap:8px; font-size:13px; cursor:pointer; }
+ul.list { list-style:none; padding:0; margin:0; } .list li:hover { color:var(--accent); }
+.empty { color:var(--muted); padding:30px; text-align:center; }
+@media (max-width:1100px) { .k4 { grid-template-columns:repeat(2,minmax(0,1fr)); } .c21, .c12, .c11, .c3, .steps { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:760px) { body { display:block; } aside { position:static; width:auto; height:auto; padding:12px; }
+  aside nav { flex-direction:row; overflow-x:auto; } aside nav a span { white-space:nowrap; } .eng, .side-foot { display:none; } .brand { padding-bottom:10px; }
+  .topbar { padding:0 14px; } .status { display:none; } main { padding:16px; } .toolbar input { min-width:0; } .donut { grid-template-columns:1fr; } }
+</style></head><body>
+<aside><div class="brand"><span class="logo">JE</span>Audit Analytics</div>
+<div class="eng"><b>Demo Manufacturing GmbH</b><span>Company code 1000 · FY 2025</span><br><span class="pill">Synthetic demo data</span></div>
+<nav><a href="#overview" data-view="overview"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Overview</span></a><a href="#ranking" data-view="ranking"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h12M3 18h6"/></svg><span>Risk ranking</span><em>46</em></a><a href="#tests" data-view="tests"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4 19a1 1 0 0 0 .9 1.5h14.2A1 1 0 0 0 20 19l-6-10V3"/></svg><span>Tests</span><em>9</em></a><a href="#benford" data-view="benford"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="8" width="3" height="10"/><rect x="12" y="11" width="3" height="7"/><rect x="17" y="14" width="3" height="4"/></svg><span>Benford's law</span></a><a href="#quality" data-view="quality"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Data quality</span></a><a href="#method" data-view="method"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/></svg><span>Method</span></a></nav>
+<div class="side-foot"><a href="https://github.com/UjjwalVashist/audit-analytics-dashboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.4 6.4-1.6 6.4-7A5.4 5.4 0 0 0 20 4.8 5 5 0 0 0 19.9 1S18.7.6 16 2.5a13.4 13.4 0 0 0-7 0C6.3.6 5.1 1 5.1 1A5 5 0 0 0 5 4.8a5.4 5.4 0 0 0-1.5 3.7c0 5.4 3.3 6.6 6.4 7A3.4 3.4 0 0 0 9 18.1V22"/></svg> Source code &amp; Streamlit app</a>Python · SQL · pandas · pytest</div></aside>
+<div class="app">
+<div class="topbar"><div class="crumbs">Engagements / Demo Manufacturing GmbH / <b id="crumb">Overview</b></div><span class="sp"></span>
+<span class="status"><i></i><span id="statusText"></span></span><a class="btn primary" href="https://github.com/UjjwalVashist/audit-analytics-dashboard">Open repository</a></div>
+<main>
+
+<section class="view" id="v-overview">
+ <div class="vh"><div><h1>Journal-entry testing</h1><p>All postings of FY 2025 tested against nine ISA 240 criteria</p></div></div>
+ <div class="alert" id="topAlert"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg><div class="sp" id="topAlertText"></div><button class="btn" id="topAlertBtn">Review</button></div>
+ <div class="grid k4" id="kpis"></div>
+ <div class="grid c21" style="margin-top:16px">
+  <div class="card"><div class="ch"><h3>Flagged postings per month</h3><small>by risk level</small></div><div class="chart"><canvas id="cMonthly"></canvas></div></div>
+  <div class="card"><div class="ch"><h3>Risk mix</h3><small id="mixTotal"></small></div><div class="donut"><div class="chart small"><canvas id="cDonut"></canvas></div><div class="legend" id="mixLegend"></div></div></div>
+ </div>
+ <div class="grid c21" style="margin-top:16px">
+  <div class="card"><div class="ch"><h3>Who triggers which test</h3><small>flagged postings per user</small></div><div class="heat" id="heat"></div></div>
+  <div class="card"><div class="ch"><h3>Highest risk</h3><a href="#ranking">View all →</a></div><ul class="top" id="topList"></ul></div>
+ </div>
+</section>
+
+<section class="view" id="v-ranking">
+ <div class="vh"><div><h1>Risk ranking</h1><p>Points from every failed test · High ≥ 3 · Medium 2 · Low 1</p></div>
+ <button class="btn" id="csv">Download sample (CSV)</button></div>
+ <div class="toolbar"><div class="seg" id="lvl"><button class="on" data-l="">All</button><button data-l="High">High</button><button data-l="Medium">Medium</button><button data-l="Low">Low</button></div>
+  <select id="user"><option value="">All users</option></select><select id="test"><option value="">All tests</option></select>
+  <input id="q" type="search" placeholder="Search document, account, vendor, text…"></div>
+ <div class="tbl"><table><thead><tr><th class="n">#</th><th>Level</th><th>Document</th><th>Posting date</th><th>User</th><th>Account</th><th class="n">Amount €</th><th>Failed tests</th></tr></thead><tbody id="rows"></tbody></table></div>
+ <div class="foot" id="count"></div>
+</section>
+
+<section class="view" id="v-tests">
+ <div class="vh"><div><h1>Tests</h1><p>Selection criteria from audit practice · click a test for its postings</p></div></div>
+ <div class="grid c3" id="testCards"></div>
+</section>
+
+<section class="view" id="v-benford">
+ <div class="vh"><div><h1>Benford's law</h1><p>First digits of all amounts vs. the expected distribution</p></div>
+ <div class="seg" id="bUser"></div></div>
+ <div class="grid c21">
+  <div class="card"><div class="ch"><h3 id="bTitle">Whole ledger</h3><small id="bMad"></small></div><div class="chart tall"><canvas id="cBenford"></canvas></div></div>
+  <div class="card"><div class="ch"><h3>Conformity per user</h3><small>Nigrini MAD</small></div><ul class="checks" id="bUsers"></ul></div>
+ </div>
+</section>
+
+<section class="view" id="v-quality">
+ <div class="vh"><div><h1>Data quality</h1><p>Is the extract complete? Reconcile before testing (ISA 240 Revised)</p></div></div>
+ <div class="grid c12">
+  <div class="card"><div class="ch"><h3>Population checks</h3></div><ul class="checks" id="popChecks"></ul></div>
+  <div class="card"><div class="ch"><h3>Postings per month</h3><small id="popTotal"></small></div><div class="chart tall"><canvas id="cPop"></canvas></div></div>
+ </div>
+</section>
+
+<section class="view" id="v-method">
+ <div class="vh"><div><h1>Method</h1><p>How a posting gets its risk score – the documentation an audit file needs</p></div></div>
+ <div class="steps">
+  <div class="card"><span class="num">01</span><b>Load &amp; reconcile</b><p>Read the SAP-style extract and check the population is complete.</p></div>
+  <div class="card"><span class="num">02</span><b>Run 9 tests</b><p>SQL (SQLite) and pandas on 100% of postings – no sampling.</p></div>
+  <div class="card"><span class="num">03</span><b>Score</b><p>Add the points of every failed test. High ≥ 3, Medium 2, Low 1.</p></div>
+  <div class="card"><span class="num">04</span><b>Follow up</b><p>Export exceptions and a risk-based sample to Excel / CSV.</p></div>
+ </div>
+ <div class="tbl" style="margin-top:16px;max-height:none"><table><thead><tr><th>Test</th><th>Rule</th><th class="n">Points</th><th>Basis</th></tr></thead><tbody id="rules"></tbody></table></div>
+</section>
+</main></div>
+
+<div class="drawer-bg" id="bg"></div>
+<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle"><div class="dh"><div><span id="dKicker" class="sub"></span><h2 id="dTitle"></h2></div>
+<button class="x" id="dClose" aria-label="Close">✕</button></div><div class="db" id="dBody"></div></div>
+
+<script>
+const D = {"pop": {"postings": 4007, "total": 7538828.43, "first_document": 5100000001, "last_document": 5100004012, "missing_numbers": 5, "duplicate_keys": 0, "first_date": "01.01.2025", "last_date": "31.12.2025", "months_covered": 12, "users": 7, "accounts": 8, "per_month": [336, 317, 329, 327, 302, 324, 365, 360, 348, 347, 322, 330]}, "rows": [{"rank": 1, "doc": "5100003908", "date": "31.12.2025", "entered": "09.01.2026", "time": "23:41:00", "user": "SCHULZ_T", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10018", "amount": 25000.0, "text": "", "score": 9, "level": "High", "keys": ["post_closing", "rare_users", "after_hours", "round_amounts", "missing_description"]}, {"rank": 2, "doc": "5100002644", "date": "31.12.2025", "entered": "09.01.2026", "time": "23:41:00", "user": "SCHULZ_T", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10023", "amount": 25000.0, "text": "", "score": 9, "level": "High", "keys": ["post_closing", "rare_users", "after_hours", "round_amounts", "missing_description"]}, {"rank": 3, "doc": "5100002589", "date": "31.12.2025", "entered": "09.01.2026", "time": "23:41:00", "user": "SCHULZ_T", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10010", "amount": 25000.0, "text": "", "score": 9, "level": "High", "keys": ["post_closing", "rare_users", "after_hours", "round_amounts", "missing_description"]}, {"rank": 4, "doc": "5100000202", "date": "10.04.2025", "entered": "10.04.2025", "time": "10:08:12", "user": "SCHMIDT_A", "approver": "SCHMIDT_A", "account": "400000 Materialaufwand", "vendor": "V10037", "amount": 4684.3, "text": "Rechnung V10037 04/2025", "score": 5, "level": "High", "keys": ["segregation_of_duties", "below_limit"]}, {"rank": 5, "doc": "5100003495", "date": "08.12.2025", "entered": "08.12.2025", "time": "01:27:00", "user": "WEBER_K", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10033", "amount": 4940.89, "text": "Rechnung V10033 12/2025", "score": 4, "level": "High", "keys": ["below_limit", "after_hours"]}, {"rank": 6, "doc": "5100003095", "date": "17.02.2025", "entered": "17.02.2025", "time": "12:05:29", "user": "BECKER_M", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10008", "amount": 9153.9, "text": "Rechnung V10008 02/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 7, "doc": "5100004004", "date": "17.02.2025", "entered": "17.02.2025", "time": "08:44:14", "user": "BECKER_M", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10008", "amount": 9153.9, "text": "Rechnung V10008 02/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 8, "doc": "5100004002", "date": "03.04.2025", "entered": "03.04.2025", "time": "07:59:29", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10007", "amount": 8478.71, "text": "Rechnung V10007 04/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 9, "doc": "5100002214", "date": "03.04.2025", "entered": "03.04.2025", "time": "10:18:47", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10007", "amount": 8478.71, "text": "Rechnung V10007 04/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 10, "doc": "5100001158", "date": "15.01.2025", "entered": "15.01.2025", "time": "07:29:02", "user": "WEBER_K", "approver": "MEYER_R", "account": "440000 IT-Dienstleistungen", "vendor": "V10040", "amount": 5201.62, "text": "Rechnung V10040 01/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 11, "doc": "5100004010", "date": "15.01.2025", "entered": "15.01.2025", "time": "12:30:26", "user": "WEBER_K", "approver": "MEYER_R", "account": "440000 IT-Dienstleistungen", "vendor": "V10040", "amount": 5201.62, "text": "Rechnung V10040 01/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 12, "doc": "5100004011", "date": "03.01.2025", "entered": "03.01.2025", "time": "08:30:23", "user": "FISCHER_L", "approver": "MEYER_R", "account": "400000 Materialaufwand", "vendor": "V10039", "amount": 4335.97, "text": "Rechnung V10039 01/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 13, "doc": "5100000124", "date": "03.01.2025", "entered": "03.01.2025", "time": "10:39:10", "user": "FISCHER_L", "approver": "MEYER_R", "account": "400000 Materialaufwand", "vendor": "V10039", "amount": 4335.97, "text": "Rechnung V10039 01/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 14, "doc": "5100000491", "date": "04.08.2025", "entered": "04.08.2025", "time": "16:50:39", "user": "WEBER_K", "approver": "WEBER_K", "account": "440000 IT-Dienstleistungen", "vendor": "V10017", "amount": 2797.44, "text": "Rechnung V10017 08/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 15, "doc": "5100001630", "date": "30.12.2025", "entered": "09.01.2026", "time": "12:15:19", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10018", "amount": 2764.32, "text": "Rechnung V10018 09/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 16, "doc": "5100001042", "date": "29.04.2025", "entered": "29.04.2025", "time": "15:19:24", "user": "BECKER_M", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10005", "amount": 2340.76, "text": "Rechnung V10005 04/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 17, "doc": "5100004006", "date": "29.04.2025", "entered": "29.04.2025", "time": "07:41:39", "user": "BECKER_M", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10005", "amount": 2340.76, "text": "Rechnung V10005 04/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 18, "doc": "5100001831", "date": "30.12.2025", "entered": "12.01.2026", "time": "08:03:26", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10027", "amount": 1628.86, "text": "Rechnung V10027 10/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 19, "doc": "5100003678", "date": "24.04.2025", "entered": "24.04.2025", "time": "10:13:55", "user": "SCHMIDT_A", "approver": "SCHMIDT_A", "account": "400000 Materialaufwand", "vendor": "V10020", "amount": 1309.43, "text": "Rechnung V10020 04/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 20, "doc": "5100001716", "date": "29.12.2025", "entered": "05.01.2026", "time": "08:19:37", "user": "KOCH_J", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10021", "amount": 603.38, "text": "Rechnung V10021 09/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 21, "doc": "5100004012", "date": "23.12.2025", "entered": "23.12.2025", "time": "15:42:53", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10028", "amount": 544.74, "text": "Rechnung V10028 12/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 22, "doc": "5100002117", "date": "23.12.2025", "entered": "23.12.2025", "time": "14:51:48", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10028", "amount": 544.74, "text": "Rechnung V10028 12/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 23, "doc": "5100003842", "date": "14.02.2025", "entered": "14.02.2025", "time": "10:06:22", "user": "FISCHER_L", "approver": "FISCHER_L", "account": "400000 Materialaufwand", "vendor": "V10038", "amount": 428.08, "text": "Rechnung V10038 02/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 24, "doc": "5100004009", "date": "02.05.2025", "entered": "02.05.2025", "time": "16:30:36", "user": "SCHMIDT_A", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10017", "amount": 419.69, "text": "Rechnung V10017 05/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 25, "doc": "5100002485", "date": "02.05.2025", "entered": "02.05.2025", "time": "08:34:25", "user": "SCHMIDT_A", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10017", "amount": 419.69, "text": "Rechnung V10017 05/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 26, "doc": "5100002486", "date": "31.12.2025", "entered": "17.01.2026", "time": "14:49:56", "user": "WEBER_K", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10017", "amount": 410.38, "text": "Rechnung V10017 09/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 27, "doc": "5100000169", "date": "05.12.2025", "entered": "05.12.2025", "time": "17:06:04", "user": "FISCHER_L", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10030", "amount": 383.52, "text": "Rechnung V10030 12/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 28, "doc": "5100004007", "date": "05.12.2025", "entered": "05.12.2025", "time": "10:22:22", "user": "FISCHER_L", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10030", "amount": 383.52, "text": "Rechnung V10030 12/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 29, "doc": "5100000291", "date": "19.08.2025", "entered": "19.08.2025", "time": "17:00:30", "user": "HOFFMANN_S", "approver": "HOFFMANN_S", "account": "430000 Beratungskosten", "vendor": "V10031", "amount": 329.26, "text": "Rechnung V10031 08/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 30, "doc": "5100002188", "date": "16.07.2025", "entered": "16.07.2025", "time": "07:52:52", "user": "BECKER_M", "approver": "BECKER_M", "account": "420000 Reisekosten", "vendor": "V10025", "amount": 232.88, "text": "Rechnung V10025 07/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 31, "doc": "5100002794", "date": "29.12.2025", "entered": "05.01.2026", "time": "11:48:17", "user": "SCHMIDT_A", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10016", "amount": 215.71, "text": "Rechnung V10016 04/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 32, "doc": "5100002451", "date": "07.10.2025", "entered": "07.10.2025", "time": "07:50:43", "user": "HOFFMANN_S", "approver": "HOFFMANN_S", "account": "450000 Mietaufwand", "vendor": "V10006", "amount": 209.32, "text": "Rechnung V10006 10/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 33, "doc": "5100001683", "date": "29.12.2025", "entered": "06.01.2026", "time": "17:32:37", "user": "KOCH_J", "approver": "MEYER_R", "account": "400000 Materialaufwand", "vendor": "V10019", "amount": 208.41, "text": "Rechnung V10019 08/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 34, "doc": "5100003613", "date": "31.12.2025", "entered": "13.01.2026", "time": "10:55:02", "user": "BECKER_M", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10004", "amount": 194.98, "text": "Rechnung V10004 03/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 35, "doc": "5100002222", "date": "30.12.2025", "entered": "10.01.2026", "time": "07:18:38", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10002", "amount": 144.12, "text": "Rechnung V10002 03/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 36, "doc": "5100004005", "date": "19.05.2025", "entered": "19.05.2025", "time": "08:59:43", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10013", "amount": 90.08, "text": "Rechnung V10013 05/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 37, "doc": "5100003699", "date": "19.05.2025", "entered": "19.05.2025", "time": "15:49:27", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10013", "amount": 90.08, "text": "Rechnung V10013 05/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 38, "doc": "5100004003", "date": "02.10.2025", "entered": "02.10.2025", "time": "10:50:34", "user": "BECKER_M", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10017", "amount": 73.6, "text": "Rechnung V10017 10/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 39, "doc": "5100003170", "date": "02.10.2025", "entered": "02.10.2025", "time": "12:17:20", "user": "BECKER_M", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10017", "amount": 73.6, "text": "Rechnung V10017 10/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 40, "doc": "5100003406", "date": "31.12.2025", "entered": "05.01.2026", "time": "12:46:34", "user": "FISCHER_L", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10001", "amount": 66.94, "text": "Rechnung V10001 07/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 41, "doc": "5100000153", "date": "19.11.2025", "entered": "19.11.2025", "time": "12:31:46", "user": "FISCHER_L", "approver": "FISCHER_L", "account": "450000 Mietaufwand", "vendor": "V10034", "amount": 33.8, "text": "Rechnung V10034 11/2025", "score": 3, "level": "High", "keys": ["segregation_of_duties"]}, {"rank": 42, "doc": "5100002058", "date": "10.06.2025", "entered": "10.06.2025", "time": "17:24:27", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10035", "amount": 27.21, "text": "Rechnung V10035 06/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 43, "doc": "5100004001", "date": "10.06.2025", "entered": "10.06.2025", "time": "09:17:59", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10035", "amount": 27.21, "text": "Rechnung V10035 06/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 44, "doc": "5100003780", "date": "29.12.2025", "entered": "16.01.2026", "time": "13:20:43", "user": "WEBER_K", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10024", "amount": 24.11, "text": "Rechnung V10024 05/2025", "score": 3, "level": "High", "keys": ["post_closing"]}, {"rank": 45, "doc": "5100004008", "date": "17.02.2025", "entered": "17.02.2025", "time": "14:54:45", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10024", "amount": 22.3, "text": "Rechnung V10024 02/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 46, "doc": "5100001520", "date": "17.02.2025", "entered": "17.02.2025", "time": "13:55:30", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10024", "amount": 22.3, "text": "Rechnung V10024 02/2025", "score": 3, "level": "High", "keys": ["duplicates"]}, {"rank": 47, "doc": "5100001406", "date": "10.03.2025", "entered": "10.03.2025", "time": "16:07:33", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10020", "amount": 4997.15, "text": "Rechnung V10020 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 48, "doc": "5100002645", "date": "05.05.2025", "entered": "05.05.2025", "time": "16:47:51", "user": "BECKER_M", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10033", "amount": 4990.51, "text": "Rechnung V10033 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 49, "doc": "5100003130", "date": "19.02.2025", "entered": "19.02.2025", "time": "11:23:14", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10038", "amount": 4990.46, "text": "Rechnung V10038 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 50, "doc": "5100002447", "date": "30.01.2025", "entered": "30.01.2025", "time": "13:37:14", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10033", "amount": 4988.86, "text": "Rechnung V10033 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 51, "doc": "5100001488", "date": "07.01.2025", "entered": "07.01.2025", "time": "12:15:20", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10030", "amount": 4981.29, "text": "Rechnung V10030 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 52, "doc": "5100001069", "date": "27.06.2025", "entered": "27.06.2025", "time": "10:32:50", "user": "WEBER_K", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10011", "amount": 4975.1, "text": "Rechnung V10011 06/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 53, "doc": "5100002685", "date": "08.07.2025", "entered": "08.07.2025", "time": "11:50:24", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10037", "amount": 4969.86, "text": "Rechnung V10037 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 54, "doc": "5100003701", "date": "21.11.2025", "entered": "21.11.2025", "time": "15:17:24", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10017", "amount": 4957.75, "text": "Rechnung V10017 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 55, "doc": "5100002775", "date": "04.02.2025", "entered": "04.02.2025", "time": "15:33:06", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10022", "amount": 4955.79, "text": "Rechnung V10022 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 56, "doc": "5100001012", "date": "27.05.2025", "entered": "27.05.2025", "time": "12:08:31", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10017", "amount": 4952.7, "text": "Rechnung V10017 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 57, "doc": "5100001853", "date": "07.08.2025", "entered": "07.08.2025", "time": "07:25:42", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10021", "amount": 4947.79, "text": "Rechnung V10021 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 58, "doc": "5100003769", "date": "31.10.2025", "entered": "31.10.2025", "time": "14:18:46", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10003", "amount": 4942.87, "text": "Rechnung V10003 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 59, "doc": "5100002902", "date": "23.07.2025", "entered": "23.07.2025", "time": "12:30:38", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10024", "amount": 4936.87, "text": "Rechnung V10024 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 60, "doc": "5100002187", "date": "24.09.2025", "entered": "24.09.2025", "time": "09:48:09", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10032", "amount": 4929.47, "text": "Rechnung V10032 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 61, "doc": "5100002163", "date": "20.11.2025", "entered": "20.11.2025", "time": "17:30:25", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10039", "amount": 4925.51, "text": "Rechnung V10039 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 62, "doc": "5100001444", "date": "08.01.2025", "entered": "08.01.2025", "time": "17:10:57", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10013", "amount": 4924.26, "text": "Rechnung V10013 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 63, "doc": "5100003155", "date": "04.08.2025", "entered": "04.08.2025", "time": "17:31:28", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10010", "amount": 4924.12, "text": "Rechnung V10010 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 64, "doc": "5100002706", "date": "29.10.2025", "entered": "29.10.2025", "time": "13:52:01", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10022", "amount": 4922.85, "text": "Rechnung V10022 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 65, "doc": "5100000822", "date": "18.02.2025", "entered": "18.02.2025", "time": "11:25:05", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "460000 Werbekosten", "vendor": "V10028", "amount": 4916.95, "text": "Rechnung V10028 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 66, "doc": "5100003119", "date": "11.03.2025", "entered": "11.03.2025", "time": "12:33:49", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10021", "amount": 4913.31, "text": "Rechnung V10021 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 67, "doc": "5100001196", "date": "31.03.2025", "entered": "31.03.2025", "time": "14:43:35", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10014", "amount": 4908.95, "text": "Rechnung V10014 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 68, "doc": "5100000917", "date": "26.03.2025", "entered": "26.03.2025", "time": "13:54:25", "user": "WEBER_K", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10011", "amount": 4905.36, "text": "Rechnung V10011 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 69, "doc": "5100002518", "date": "29.08.2025", "entered": "29.08.2025", "time": "07:03:41", "user": "SCHMIDT_A", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10014", "amount": 4902.94, "text": "Rechnung V10014 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 70, "doc": "5100002672", "date": "11.08.2025", "entered": "11.08.2025", "time": "15:59:40", "user": "KOCH_J", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10034", "amount": 4902.82, "text": "Rechnung V10034 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 71, "doc": "5100001080", "date": "08.04.2025", "entered": "08.04.2025", "time": "11:46:10", "user": "BECKER_M", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10026", "amount": 4897.5, "text": "Rechnung V10026 04/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 72, "doc": "5100002559", "date": "06.08.2025", "entered": "06.08.2025", "time": "14:21:01", "user": "WEBER_K", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10006", "amount": 4895.2, "text": "Rechnung V10006 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 73, "doc": "5100002050", "date": "22.01.2025", "entered": "22.01.2025", "time": "12:21:56", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10025", "amount": 4893.2, "text": "Rechnung V10025 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 74, "doc": "5100000475", "date": "26.08.2025", "entered": "26.08.2025", "time": "16:37:09", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10004", "amount": 4884.19, "text": "Rechnung V10004 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 75, "doc": "5100003519", "date": "16.12.2025", "entered": "16.12.2025", "time": "16:27:35", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10031", "amount": 4883.89, "text": "Rechnung V10031 12/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 76, "doc": "5100000482", "date": "04.11.2025", "entered": "04.11.2025", "time": "12:14:29", "user": "WEBER_K", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10009", "amount": 4881.18, "text": "Rechnung V10009 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 77, "doc": "5100000581", "date": "10.02.2025", "entered": "10.02.2025", "time": "07:18:59", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10024", "amount": 4877.2, "text": "Rechnung V10024 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 78, "doc": "5100001220", "date": "19.05.2025", "entered": "19.05.2025", "time": "11:25:23", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10014", "amount": 4868.47, "text": "Rechnung V10014 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 79, "doc": "5100003864", "date": "13.11.2025", "entered": "13.11.2025", "time": "15:30:19", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10006", "amount": 4866.57, "text": "Rechnung V10006 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 80, "doc": "5100003835", "date": "18.12.2025", "entered": "18.12.2025", "time": "08:52:21", "user": "WEBER_K", "approver": "MEYER_R", "account": "440000 IT-Dienstleistungen", "vendor": "V10004", "amount": 4864.69, "text": "Rechnung V10004 12/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 81, "doc": "5100002852", "date": "30.07.2025", "entered": "30.07.2025", "time": "09:07:57", "user": "BECKER_M", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10006", "amount": 4863.29, "text": "Rechnung V10006 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 82, "doc": "5100001273", "date": "28.02.2025", "entered": "28.02.2025", "time": "11:26:41", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10005", "amount": 4861.61, "text": "Rechnung V10005 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 83, "doc": "5100000199", "date": "12.08.2025", "entered": "12.08.2025", "time": "12:42:20", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10026", "amount": 4861.35, "text": "Rechnung V10026 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 84, "doc": "5100003651", "date": "28.03.2025", "entered": "28.03.2025", "time": "12:44:06", "user": "BECKER_M", "approver": "MEYER_R", "account": "420000 Reisekosten", "vendor": "V10032", "amount": 4852.51, "text": "Rechnung V10032 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 85, "doc": "5100001077", "date": "18.08.2025", "entered": "18.08.2025", "time": "14:04:18", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10016", "amount": 4844.96, "text": "Rechnung V10016 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 86, "doc": "5100003743", "date": "21.03.2025", "entered": "21.03.2025", "time": "11:37:30", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10023", "amount": 4841.89, "text": "Rechnung V10023 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 87, "doc": "5100000838", "date": "17.11.2025", "entered": "17.11.2025", "time": "10:11:43", "user": "SCHMIDT_A", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10021", "amount": 4836.64, "text": "Rechnung V10021 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 88, "doc": "5100003221", "date": "02.09.2025", "entered": "02.09.2025", "time": "08:53:40", "user": "SCHMIDT_A", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10021", "amount": 4832.77, "text": "Rechnung V10021 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 89, "doc": "5100001879", "date": "14.10.2025", "entered": "14.10.2025", "time": "08:20:01", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10004", "amount": 4819.99, "text": "Rechnung V10004 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 90, "doc": "5100003258", "date": "28.01.2025", "entered": "28.01.2025", "time": "17:09:18", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10020", "amount": 4816.18, "text": "Rechnung V10020 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 91, "doc": "5100002026", "date": "03.03.2025", "entered": "03.03.2025", "time": "17:12:52", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10009", "amount": 4806.72, "text": "Rechnung V10009 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 92, "doc": "5100003050", "date": "12.08.2025", "entered": "12.08.2025", "time": "08:21:20", "user": "WEBER_K", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10024", "amount": 4806.36, "text": "Rechnung V10024 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 93, "doc": "5100003647", "date": "18.11.2025", "entered": "18.11.2025", "time": "11:26:39", "user": "BECKER_M", "approver": "MEYER_R", "account": "440000 IT-Dienstleistungen", "vendor": "V10012", "amount": 4802.79, "text": "Rechnung V10012 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 94, "doc": "5100003848", "date": "28.10.2025", "entered": "28.10.2025", "time": "15:56:52", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10032", "amount": 4799.31, "text": "Rechnung V10032 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 95, "doc": "5100002031", "date": "09.09.2025", "entered": "09.09.2025", "time": "15:15:50", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10037", "amount": 4797.86, "text": "Rechnung V10037 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 96, "doc": "5100001882", "date": "14.08.2025", "entered": "14.08.2025", "time": "11:32:08", "user": "KOCH_J", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10019", "amount": 4795.2, "text": "Rechnung V10019 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 97, "doc": "5100002360", "date": "10.11.2025", "entered": "10.11.2025", "time": "17:43:06", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10025", "amount": 4795.0, "text": "Rechnung V10025 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 98, "doc": "5100002938", "date": "07.02.2025", "entered": "07.02.2025", "time": "17:16:17", "user": "FISCHER_L", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10003", "amount": 4791.52, "text": "Rechnung V10003 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 99, "doc": "5100003469", "date": "08.05.2025", "entered": "08.05.2025", "time": "09:58:11", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10034", "amount": 4787.3, "text": "Rechnung V10034 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 100, "doc": "5100002099", "date": "30.09.2025", "entered": "30.09.2025", "time": "11:09:38", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10003", "amount": 4785.84, "text": "Rechnung V10003 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 101, "doc": "5100001953", "date": "20.05.2025", "entered": "20.05.2025", "time": "16:28:22", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10026", "amount": 4765.17, "text": "Rechnung V10026 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 102, "doc": "5100003451", "date": "25.04.2025", "entered": "25.04.2025", "time": "17:40:43", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10004", "amount": 4736.85, "text": "Rechnung V10004 04/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 103, "doc": "5100000322", "date": "05.11.2025", "entered": "05.11.2025", "time": "16:11:43", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10028", "amount": 4731.26, "text": "Rechnung V10028 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 104, "doc": "5100000048", "date": "12.11.2025", "entered": "12.11.2025", "time": "17:57:01", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10014", "amount": 4725.83, "text": "Rechnung V10014 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 105, "doc": "5100001863", "date": "30.04.2025", "entered": "30.04.2025", "time": "07:45:50", "user": "BECKER_M", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10009", "amount": 4722.16, "text": "Rechnung V10009 04/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 106, "doc": "5100000401", "date": "11.07.2025", "entered": "11.07.2025", "time": "15:08:22", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10019", "amount": 4720.45, "text": "Rechnung V10019 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 107, "doc": "5100000773", "date": "17.06.2025", "entered": "17.06.2025", "time": "17:20:33", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10005", "amount": 4715.87, "text": "Rechnung V10005 06/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 108, "doc": "5100002602", "date": "11.06.2025", "entered": "11.06.2025", "time": "11:36:47", "user": "KOCH_J", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10030", "amount": 4713.13, "text": "Rechnung V10030 06/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 109, "doc": "5100002588", "date": "11.03.2025", "entered": "11.03.2025", "time": "10:44:34", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10033", "amount": 4704.43, "text": "Rechnung V10033 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 110, "doc": "5100002967", "date": "08.08.2025", "entered": "08.08.2025", "time": "10:15:31", "user": "KOCH_J", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10007", "amount": 4702.5, "text": "Rechnung V10007 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 111, "doc": "5100003962", "date": "23.10.2025", "entered": "23.10.2025", "time": "07:46:36", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10007", "amount": 4696.77, "text": "Rechnung V10007 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 112, "doc": "5100003918", "date": "06.11.2025", "entered": "06.11.2025", "time": "09:06:17", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10028", "amount": 4692.72, "text": "Rechnung V10028 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 113, "doc": "5100002782", "date": "18.11.2025", "entered": "18.11.2025", "time": "13:21:02", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10030", "amount": 4691.07, "text": "Rechnung V10030 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 114, "doc": "5100000389", "date": "01.08.2025", "entered": "01.08.2025", "time": "15:54:51", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10003", "amount": 4686.48, "text": "Rechnung V10003 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 115, "doc": "5100003882", "date": "30.12.2025", "entered": "30.12.2025", "time": "07:57:47", "user": "WEBER_K", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10040", "amount": 4677.81, "text": "Rechnung V10040 12/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 116, "doc": "5100001869", "date": "24.09.2025", "entered": "24.09.2025", "time": "15:07:07", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10038", "amount": 4670.07, "text": "Rechnung V10038 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 117, "doc": "5100000525", "date": "10.11.2025", "entered": "10.11.2025", "time": "16:37:40", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10005", "amount": 4656.94, "text": "Rechnung V10005 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 118, "doc": "5100003759", "date": "26.06.2025", "entered": "26.06.2025", "time": "15:53:36", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10024", "amount": 4656.15, "text": "Rechnung V10024 06/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 119, "doc": "5100003432", "date": "02.10.2025", "entered": "02.10.2025", "time": "09:09:40", "user": "KOCH_J", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10031", "amount": 4654.33, "text": "Rechnung V10031 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 120, "doc": "5100001424", "date": "24.09.2025", "entered": "24.09.2025", "time": "16:25:13", "user": "BECKER_M", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10022", "amount": 4637.35, "text": "Rechnung V10022 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 121, "doc": "5100002107", "date": "10.10.2025", "entered": "10.10.2025", "time": "08:37:55", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "420000 Reisekosten", "vendor": "V10011", "amount": 4635.09, "text": "Rechnung V10011 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 122, "doc": "5100001592", "date": "31.12.2025", "entered": "31.12.2025", "time": "08:29:58", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10002", "amount": 4634.42, "text": "Rechnung V10002 12/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 123, "doc": "5100000799", "date": "30.09.2025", "entered": "30.09.2025", "time": "17:57:40", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10001", "amount": 4633.81, "text": "Rechnung V10001 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 124, "doc": "5100002695", "date": "20.05.2025", "entered": "20.05.2025", "time": "07:30:02", "user": "SCHMIDT_A", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10008", "amount": 4622.16, "text": "Rechnung V10008 05/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 125, "doc": "5100002877", "date": "24.10.2025", "entered": "24.10.2025", "time": "14:20:14", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10020", "amount": 4613.9, "text": "Rechnung V10020 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 126, "doc": "5100002366", "date": "01.08.2025", "entered": "01.08.2025", "time": "17:21:36", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10035", "amount": 4611.46, "text": "Rechnung V10035 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 127, "doc": "5100003600", "date": "05.11.2025", "entered": "05.11.2025", "time": "14:20:34", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10036", "amount": 4599.7, "text": "Rechnung V10036 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 128, "doc": "5100002897", "date": "08.01.2025", "entered": "08.01.2025", "time": "16:46:44", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10012", "amount": 4591.45, "text": "Rechnung V10012 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 129, "doc": "5100003608", "date": "04.11.2025", "entered": "04.11.2025", "time": "12:42:53", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10032", "amount": 4586.64, "text": "Rechnung V10032 11/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 130, "doc": "5100003389", "date": "15.10.2025", "entered": "15.10.2025", "time": "15:00:38", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10016", "amount": 4582.42, "text": "Rechnung V10016 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 131, "doc": "5100000958", "date": "28.02.2025", "entered": "28.02.2025", "time": "07:19:47", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10033", "amount": 4582.33, "text": "Rechnung V10033 02/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 132, "doc": "5100001820", "date": "03.03.2025", "entered": "03.03.2025", "time": "14:43:44", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10002", "amount": 4576.65, "text": "Rechnung V10002 03/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 133, "doc": "5100001723", "date": "08.12.2025", "entered": "08.12.2025", "time": "10:37:26", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10029", "amount": 4572.55, "text": "Rechnung V10029 12/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 134, "doc": "5100003314", "date": "16.01.2025", "entered": "16.01.2025", "time": "11:36:03", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10039", "amount": 4571.14, "text": "Rechnung V10039 01/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 135, "doc": "5100002740", "date": "26.09.2025", "entered": "26.09.2025", "time": "08:35:04", "user": "WEBER_K", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10007", "amount": 4570.21, "text": "Rechnung V10007 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 136, "doc": "5100000819", "date": "15.10.2025", "entered": "15.10.2025", "time": "17:28:06", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10036", "amount": 4569.56, "text": "Rechnung V10036 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 137, "doc": "5100000928", "date": "23.09.2025", "entered": "23.09.2025", "time": "14:37:37", "user": "KOCH_J", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10030", "amount": 4556.63, "text": "Rechnung V10030 09/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 138, "doc": "5100001865", "date": "16.10.2025", "entered": "16.10.2025", "time": "16:09:21", "user": "KOCH_J", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10009", "amount": 4551.17, "text": "Rechnung V10009 10/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 139, "doc": "5100002167", "date": "11.08.2025", "entered": "11.08.2025", "time": "14:03:08", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10002", "amount": 4542.31, "text": "Rechnung V10002 08/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 140, "doc": "5100003726", "date": "22.07.2025", "entered": "22.07.2025", "time": "17:36:33", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "420000 Reisekosten", "vendor": "V10030", "amount": 4533.22, "text": "Rechnung V10030 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 141, "doc": "5100002990", "date": "02.07.2025", "entered": "02.07.2025", "time": "14:53:51", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10031", "amount": 4509.55, "text": "Rechnung V10031 07/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 142, "doc": "5100000904", "date": "09.04.2025", "entered": "09.04.2025", "time": "15:20:30", "user": "KOCH_J", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10021", "amount": 4500.68, "text": "Rechnung V10021 04/2025", "score": 2, "level": "Medium", "keys": ["below_limit"]}, {"rank": 143, "doc": "5100000683", "date": "03.01.2025", "entered": "03.01.2025", "time": "09:15:30", "user": "SCHULZ_T", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10027", "amount": 3651.01, "text": "Rechnung V10027 01/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 144, "doc": "5100001755", "date": "23.10.2025", "entered": "23.10.2025", "time": "22:09:00", "user": "WEBER_K", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10035", "amount": 2860.37, "text": "Rechnung V10035 10/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 145, "doc": "5100002696", "date": "23.10.2025", "entered": "23.10.2025", "time": "00:43:00", "user": "WEBER_K", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10038", "amount": 2268.69, "text": "Rechnung V10038 10/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 146, "doc": "5100001531", "date": "23.07.2025", "entered": "23.07.2025", "time": "17:35:35", "user": "SCHULZ_T", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10013", "amount": 1198.2, "text": "Rechnung V10013 07/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 147, "doc": "5100003517", "date": "07.02.2025", "entered": "07.02.2025", "time": "01:25:00", "user": "WEBER_K", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10025", "amount": 1006.6, "text": "Rechnung V10025 02/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 148, "doc": "5100002407", "date": "26.08.2025", "entered": "26.08.2025", "time": "03:28:00", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10030", "amount": 784.6, "text": "Rechnung V10030 08/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 149, "doc": "5100003127", "date": "17.10.2025", "entered": "17.10.2025", "time": "00:38:00", "user": "BECKER_M", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10019", "amount": 460.22, "text": "Rechnung V10019 10/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 150, "doc": "5100001265", "date": "17.09.2025", "entered": "17.09.2025", "time": "03:52:00", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10035", "amount": 455.19, "text": "Rechnung V10035 09/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 151, "doc": "5100001125", "date": "30.05.2025", "entered": "30.05.2025", "time": "13:05:45", "user": "SCHULZ_T", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10007", "amount": 366.98, "text": "Rechnung V10007 05/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 152, "doc": "5100000531", "date": "19.08.2025", "entered": "19.08.2025", "time": "16:27:44", "user": "SCHULZ_T", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10001", "amount": 276.21, "text": "Rechnung V10001 08/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 153, "doc": "5100002790", "date": "03.06.2025", "entered": "03.06.2025", "time": "03:21:00", "user": "WEBER_K", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10039", "amount": 240.05, "text": "Rechnung V10039 06/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 154, "doc": "5100000254", "date": "07.03.2025", "entered": "07.03.2025", "time": "03:29:00", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10013", "amount": 101.6, "text": "Rechnung V10013 03/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 155, "doc": "5100000136", "date": "11.04.2025", "entered": "11.04.2025", "time": "01:30:00", "user": "BECKER_M", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10023", "amount": 97.04, "text": "Rechnung V10023 04/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 156, "doc": "5100002154", "date": "19.09.2025", "entered": "19.09.2025", "time": "12:22:27", "user": "SCHULZ_T", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10007", "amount": 88.15, "text": "Rechnung V10007 09/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 157, "doc": "5100000478", "date": "27.01.2025", "entered": "27.01.2025", "time": "23:15:00", "user": "BECKER_M", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10004", "amount": 79.27, "text": "Rechnung V10004 01/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 158, "doc": "5100003528", "date": "10.07.2025", "entered": "10.07.2025", "time": "00:27:00", "user": "BECKER_M", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10025", "amount": 59.28, "text": "Rechnung V10025 07/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 159, "doc": "5100000666", "date": "10.03.2025", "entered": "10.03.2025", "time": "00:38:00", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10032", "amount": 32.17, "text": "Rechnung V10032 03/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 160, "doc": "5100001507", "date": "13.02.2025", "entered": "13.02.2025", "time": "11:46:56", "user": "SCHULZ_T", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10009", "amount": 16.92, "text": "Rechnung V10009 02/2025", "score": 2, "level": "Medium", "keys": ["rare_users"]}, {"rank": 161, "doc": "5100001027", "date": "21.11.2025", "entered": "21.11.2025", "time": "01:30:00", "user": "KOCH_J", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10002", "amount": 15.05, "text": "Rechnung V10002 11/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 162, "doc": "5100002303", "date": "11.11.2025", "entered": "11.11.2025", "time": "00:20:00", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "450000 Mietaufwand", "vendor": "V10008", "amount": 5.93, "text": "Rechnung V10008 11/2025", "score": 2, "level": "Medium", "keys": ["after_hours"]}, {"rank": 163, "doc": "5100003597", "date": "29.04.2025", "entered": "29.04.2025", "time": "10:55:24", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10001", "amount": 50000.0, "text": "Rechnung V10001 04/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 164, "doc": "5100002607", "date": "17.04.2025", "entered": "17.04.2025", "time": "15:45:49", "user": "WEBER_K", "approver": "WAGNER_P", "account": "450000 Mietaufwand", "vendor": "V10035", "amount": 50000.0, "text": "Rechnung V10035 04/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 165, "doc": "5100002611", "date": "06.02.2025", "entered": "06.02.2025", "time": "16:45:04", "user": "FISCHER_L", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10039", "amount": 50000.0, "text": "Rechnung V10039 02/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 166, "doc": "5100001210", "date": "15.07.2025", "entered": "15.07.2025", "time": "09:54:32", "user": "KOCH_J", "approver": "BAUER_C", "account": "450000 Mietaufwand", "vendor": "V10007", "amount": 50000.0, "text": "Rechnung V10007 07/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 167, "doc": "5100003683", "date": "25.03.2025", "entered": "25.03.2025", "time": "07:20:42", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10005", "amount": 50000.0, "text": "Rechnung V10005 03/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 168, "doc": "5100001521", "date": "11.11.2025", "entered": "11.11.2025", "time": "16:58:08", "user": "BECKER_M", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10016", "amount": 50000.0, "text": "Rechnung V10016 11/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 169, "doc": "5100001150", "date": "14.11.2025", "entered": "14.11.2025", "time": "14:47:47", "user": "WEBER_K", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10024", "amount": 50000.0, "text": "Rechnung V10024 11/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 170, "doc": "5100003906", "date": "13.07.2025", "entered": "13.07.2025", "time": "08:03:11", "user": "BECKER_M", "approver": "BAUER_C", "account": "450000 Mietaufwand", "vendor": "V10026", "amount": 24688.89, "text": "Rechnung V10026 05/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 171, "doc": "5100000678", "date": "30.10.2025", "entered": "30.10.2025", "time": "12:33:41", "user": "WEBER_K", "approver": "MEYER_R", "account": "400000 Materialaufwand", "vendor": "V10036", "amount": 20000.0, "text": "Rechnung V10036 10/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 172, "doc": "5100000831", "date": "17.02.2025", "entered": "17.02.2025", "time": "07:12:57", "user": "BECKER_M", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10021", "amount": 20000.0, "text": "Rechnung V10021 02/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 173, "doc": "5100000717", "date": "12.08.2025", "entered": "12.08.2025", "time": "11:31:38", "user": "WEBER_K", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10039", "amount": 20000.0, "text": "Rechnung V10039 08/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 174, "doc": "5100000101", "date": "09.07.2025", "entered": "09.07.2025", "time": "08:49:35", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10031", "amount": 20000.0, "text": "Rechnung V10031 07/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 175, "doc": "5100002450", "date": "30.05.2025", "entered": "30.05.2025", "time": "16:52:59", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10032", "amount": 15000.0, "text": "Rechnung V10032 05/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 176, "doc": "5100002323", "date": "05.08.2025", "entered": "05.08.2025", "time": "17:16:46", "user": "HOFFMANN_S", "approver": "MEYER_R", "account": "440000 IT-Dienstleistungen", "vendor": "V10008", "amount": 15000.0, "text": "Rechnung V10008 08/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 177, "doc": "5100002070", "date": "01.12.2025", "entered": "01.12.2025", "time": "11:24:11", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "460000 Werbekosten", "vendor": "V10012", "amount": 15000.0, "text": "Rechnung V10012 12/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 178, "doc": "5100000422", "date": "08.01.2025", "entered": "08.01.2025", "time": "12:52:45", "user": "KOCH_J", "approver": "BAUER_C", "account": "450000 Mietaufwand", "vendor": "V10031", "amount": 15000.0, "text": "Rechnung V10031 01/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 179, "doc": "5100003302", "date": "29.06.2025", "entered": "29.06.2025", "time": "17:24:37", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "460000 Werbekosten", "vendor": "V10033", "amount": 13344.75, "text": "Rechnung V10033 09/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 180, "doc": "5100003099", "date": "22.01.2025", "entered": "22.01.2025", "time": "10:43:11", "user": "WEBER_K", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10040", "amount": 12347.32, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 181, "doc": "5100000453", "date": "06.08.2025", "entered": "06.08.2025", "time": "09:16:14", "user": "KOCH_J", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10039", "amount": 11177.08, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 182, "doc": "5100003354", "date": "21.10.2025", "entered": "21.10.2025", "time": "14:45:05", "user": "FISCHER_L", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10015", "amount": 10000.0, "text": "Rechnung V10015 10/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 183, "doc": "5100001584", "date": "05.11.2025", "entered": "05.11.2025", "time": "12:09:41", "user": "WEBER_K", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10007", "amount": 10000.0, "text": "Rechnung V10007 11/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 184, "doc": "5100000695", "date": "09.04.2025", "entered": "09.04.2025", "time": "13:12:16", "user": "BECKER_M", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10028", "amount": 10000.0, "text": "Rechnung V10028 04/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 185, "doc": "5100002430", "date": "27.04.2025", "entered": "27.04.2025", "time": "17:38:36", "user": "SCHMIDT_A", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10014", "amount": 9093.26, "text": "Rechnung V10014 03/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 186, "doc": "5100000187", "date": "28.11.2025", "entered": "28.11.2025", "time": "14:44:56", "user": "KOCH_J", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10027", "amount": 5000.0, "text": "Rechnung V10027 11/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 187, "doc": "5100002773", "date": "06.10.2025", "entered": "06.10.2025", "time": "09:46:02", "user": "BECKER_M", "approver": "WAGNER_P", "account": "440000 IT-Dienstleistungen", "vendor": "V10038", "amount": 5000.0, "text": "Rechnung V10038 10/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 188, "doc": "5100003028", "date": "08.08.2025", "entered": "08.08.2025", "time": "08:46:12", "user": "FISCHER_L", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10022", "amount": 5000.0, "text": "Rechnung V10022 08/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 189, "doc": "5100003055", "date": "10.04.2025", "entered": "10.04.2025", "time": "10:08:21", "user": "BECKER_M", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10030", "amount": 5000.0, "text": "Rechnung V10030 04/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 190, "doc": "5100002680", "date": "06.06.2025", "entered": "06.06.2025", "time": "14:28:13", "user": "KOCH_J", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10019", "amount": 5000.0, "text": "Rechnung V10019 06/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 191, "doc": "5100000523", "date": "27.03.2025", "entered": "27.03.2025", "time": "13:45:47", "user": "BECKER_M", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10026", "amount": 4176.61, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 192, "doc": "5100000372", "date": "01.05.2025", "entered": "01.05.2025", "time": "11:11:41", "user": "KOCH_J", "approver": "WAGNER_P", "account": "400000 Materialaufwand", "vendor": "V10013", "amount": 4131.26, "text": "Rechnung V10013 09/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 193, "doc": "5100000339", "date": "01.01.2025", "entered": "01.01.2025", "time": "08:50:14", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10017", "amount": 3129.1, "text": "Rechnung V10017 07/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 194, "doc": "5100002850", "date": "25.05.2025", "entered": "25.05.2025", "time": "14:03:19", "user": "WEBER_K", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10013", "amount": 2348.6, "text": "Rechnung V10013 02/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 195, "doc": "5100002314", "date": "27.06.2025", "entered": "27.06.2025", "time": "12:31:37", "user": "FISCHER_L", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10010", "amount": 2000.0, "text": "Rechnung V10010 06/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 196, "doc": "5100001180", "date": "26.09.2025", "entered": "26.09.2025", "time": "12:04:40", "user": "KOCH_J", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10035", "amount": 2000.0, "text": "Rechnung V10035 09/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 197, "doc": "5100000446", "date": "05.12.2025", "entered": "05.12.2025", "time": "12:50:32", "user": "FISCHER_L", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10037", "amount": 2000.0, "text": "Rechnung V10037 12/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 198, "doc": "5100001857", "date": "17.07.2025", "entered": "17.07.2025", "time": "14:16:02", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "460000 Werbekosten", "vendor": "V10025", "amount": 2000.0, "text": "Rechnung V10025 07/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 199, "doc": "5100001992", "date": "15.04.2025", "entered": "15.04.2025", "time": "09:52:27", "user": "BECKER_M", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10017", "amount": 2000.0, "text": "Rechnung V10017 04/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 200, "doc": "5100002280", "date": "30.05.2025", "entered": "30.05.2025", "time": "11:34:58", "user": "HOFFMANN_S", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10037", "amount": 2000.0, "text": "Rechnung V10037 05/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 201, "doc": "5100000511", "date": "13.06.2025", "entered": "13.06.2025", "time": "09:55:34", "user": "WEBER_K", "approver": "BAUER_C", "account": "450000 Mietaufwand", "vendor": "V10001", "amount": 2000.0, "text": "Rechnung V10001 06/2025", "score": 1, "level": "Low", "keys": ["round_amounts"]}, {"rank": 202, "doc": "5100000340", "date": "18.04.2025", "entered": "18.04.2025", "time": "08:47:11", "user": "WEBER_K", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10038", "amount": 1305.08, "text": "Rechnung V10038 10/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 203, "doc": "5100001279", "date": "16.03.2025", "entered": "16.03.2025", "time": "16:21:35", "user": "KOCH_J", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10030", "amount": 881.76, "text": "Rechnung V10030 08/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 204, "doc": "5100002438", "date": "04.05.2025", "entered": "04.05.2025", "time": "08:48:05", "user": "BECKER_M", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10011", "amount": 766.83, "text": "Rechnung V10011 05/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 205, "doc": "5100003811", "date": "06.07.2025", "entered": "06.07.2025", "time": "15:20:03", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "450000 Mietaufwand", "vendor": "V10015", "amount": 756.02, "text": "Rechnung V10015 05/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 206, "doc": "5100000402", "date": "25.12.2025", "entered": "25.12.2025", "time": "13:33:16", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "410000 Bürobedarf", "vendor": "V10028", "amount": 675.09, "text": "Rechnung V10028 10/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 207, "doc": "5100003108", "date": "31.01.2025", "entered": "31.01.2025", "time": "17:01:29", "user": "FISCHER_L", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10021", "amount": 608.43, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 208, "doc": "5100003721", "date": "15.07.2025", "entered": "15.07.2025", "time": "17:28:59", "user": "WEBER_K", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10013", "amount": 530.56, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 209, "doc": "5100002476", "date": "11.05.2025", "entered": "11.05.2025", "time": "13:30:24", "user": "KOCH_J", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10002", "amount": 522.37, "text": "Rechnung V10002 09/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 210, "doc": "5100001668", "date": "23.03.2025", "entered": "23.03.2025", "time": "17:56:19", "user": "KOCH_J", "approver": "MEYER_R", "account": "470000 Instandhaltung", "vendor": "V10039", "amount": 494.33, "text": "Rechnung V10039 07/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 211, "doc": "5100002788", "date": "18.05.2025", "entered": "18.05.2025", "time": "13:02:12", "user": "KOCH_J", "approver": "MEYER_R", "account": "400000 Materialaufwand", "vendor": "V10021", "amount": 450.2, "text": "Rechnung V10021 02/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 212, "doc": "5100001798", "date": "06.04.2025", "entered": "06.04.2025", "time": "16:58:43", "user": "BECKER_M", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10006", "amount": 388.81, "text": "Rechnung V10006 09/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 213, "doc": "5100002851", "date": "01.06.2025", "entered": "01.06.2025", "time": "15:28:01", "user": "BECKER_M", "approver": "BAUER_C", "account": "440000 IT-Dienstleistungen", "vendor": "V10037", "amount": 384.44, "text": "Rechnung V10037 08/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 214, "doc": "5100003753", "date": "17.04.2025", "entered": "17.04.2025", "time": "08:14:12", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10035", "amount": 370.65, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 215, "doc": "5100001959", "date": "13.04.2025", "entered": "13.04.2025", "time": "16:07:36", "user": "FISCHER_L", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10006", "amount": 311.63, "text": "Rechnung V10006 12/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 216, "doc": "5100001519", "date": "28.04.2025", "entered": "28.04.2025", "time": "17:28:33", "user": "WEBER_K", "approver": "MEYER_R", "account": "430000 Beratungskosten", "vendor": "V10030", "amount": 297.59, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 217, "doc": "5100003200", "date": "22.06.2025", "entered": "22.06.2025", "time": "13:00:22", "user": "WEBER_K", "approver": "MEYER_R", "account": "410000 Bürobedarf", "vendor": "V10003", "amount": 252.34, "text": "Rechnung V10003 11/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 218, "doc": "5100001260", "date": "09.03.2025", "entered": "09.03.2025", "time": "08:36:18", "user": "WEBER_K", "approver": "BAUER_C", "account": "410000 Bürobedarf", "vendor": "V10031", "amount": 227.79, "text": "Rechnung V10031 08/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 219, "doc": "5100002911", "date": "19.02.2025", "entered": "19.02.2025", "time": "10:36:34", "user": "WEBER_K", "approver": "MEYER_R", "account": "450000 Mietaufwand", "vendor": "V10021", "amount": 226.79, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 220, "doc": "5100000116", "date": "18.07.2025", "entered": "18.07.2025", "time": "13:40:30", "user": "KOCH_J", "approver": "BAUER_C", "account": "450000 Mietaufwand", "vendor": "V10021", "amount": 211.2, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 221, "doc": "5100003201", "date": "03.03.2025", "entered": "03.03.2025", "time": "16:39:12", "user": "WEBER_K", "approver": "BAUER_C", "account": "430000 Beratungskosten", "vendor": "V10037", "amount": 196.79, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 222, "doc": "5100001747", "date": "30.03.2025", "entered": "30.03.2025", "time": "07:15:58", "user": "BECKER_M", "approver": "MEYER_R", "account": "460000 Werbekosten", "vendor": "V10017", "amount": 195.74, "text": "Rechnung V10017 01/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 223, "doc": "5100003318", "date": "06.10.2025", "entered": "06.10.2025", "time": "09:38:49", "user": "BECKER_M", "approver": "BAUER_C", "account": "470000 Instandhaltung", "vendor": "V10013", "amount": 168.68, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 224, "doc": "5100002766", "date": "18.03.2025", "entered": "18.03.2025", "time": "16:38:35", "user": "SCHMIDT_A", "approver": "WAGNER_P", "account": "430000 Beratungskosten", "vendor": "V10022", "amount": 162.31, "text": "", "score": 1, "level": "Low", "keys": ["missing_description"]}, {"rank": 225, "doc": "5100002331", "date": "20.04.2025", "entered": "20.04.2025", "time": "13:31:58", "user": "SCHMIDT_A", "approver": "BAUER_C", "account": "420000 Reisekosten", "vendor": "V10025", "amount": 116.35, "text": "Rechnung V10025 07/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 226, "doc": "5100001016", "date": "02.03.2025", "entered": "02.03.2025", "time": "14:22:02", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10003", "amount": 96.19, "text": "Rechnung V10003 12/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 227, "doc": "5100000703", "date": "26.12.2025", "entered": "26.12.2025", "time": "11:58:23", "user": "HOFFMANN_S", "approver": "BAUER_C", "account": "400000 Materialaufwand", "vendor": "V10032", "amount": 94.7, "text": "Rechnung V10032 11/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 228, "doc": "5100003190", "date": "15.06.2025", "entered": "15.06.2025", "time": "12:11:31", "user": "BECKER_M", "approver": "WAGNER_P", "account": "420000 Reisekosten", "vendor": "V10004", "amount": 55.74, "text": "Rechnung V10004 10/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}, {"rank": 229, "doc": "5100002966", "date": "08.06.2025", "entered": "08.06.2025", "time": "15:52:16", "user": "FISCHER_L", "approver": "WAGNER_P", "account": "470000 Instandhaltung", "vendor": "V10006", "amount": 38.09, "text": "Rechnung V10006 12/2025", "score": 1, "level": "Low", "keys": ["weekend_holiday"]}], "tests": [{"key": "duplicates", "title": "Duplicate postings", "why": "Paying the same invoice twice is a classic error - and a classic fraud.", "weight": 3, "basis": "Error and fraud indicator", "rule": "Same vendor, account, amount, date and text posted more than once.", "count": 24, "docs": ["5100001042", "5100004006", "5100002214", "5100004002", "5100003095", "5100004004", "5100003699", "5100004005", "5100003170", "5100004003", "5100002485", "5100004009", "5100001520", "5100004008", "5100002117", "5100004012", "5100000169", "5100004007", "5100002058", "5100004001", "5100000124", "5100004011", "5100001158", "5100004010"], "gaps": []}, {"key": "segregation_of_duties", "title": "Segregation of duties", "why": "One person entering and approving the same posting breaks the four-eyes principle.", "weight": 3, "basis": "Internal control (four-eyes principle)", "rule": "The same user entered and approved the posting (four-eyes principle broken).", "count": 8, "docs": ["5100002188", "5100000153", "5100003842", "5100000291", "5100002451", "5100000202", "5100003678", "5100000491"], "gaps": []}, {"key": "post_closing", "title": "Post-closing entries", "why": "Entries made after year end but dated into the closed year can change the published result.", "weight": 3, "basis": "ISA 240: entries at period end and post-closing", "rule": "Entered after the fiscal year ended, but dated back into it.", "count": 13, "docs": ["5100002486", "5100003780", "5100003613", "5100001831", "5100002222", "5100001630", "5100002589", "5100002644", "5100003908", "5100001683", "5100001716", "5100002794", "5100003406"], "gaps": []}, {"key": "below_limit", "title": "Just below the approval limit (5,000 EUR)", "why": "Splitting invoices to stay under the limit avoids the second approval.", "weight": 2, "basis": "Control circumvention", "rule": "Amounts just under the approval limit, with how often each user does it.", "count": 98, "docs": ["5100001406", "5100003130", "5100002447", "5100001488", "5100002685", "5100003701", "5100002775", "5100001012", "5100001853", "5100003769", "5100002902", "5100002187", "5100002163", "5100003155", "5100002706", "5100003119", "5100001196", "5100002672", "5100002050", "5100000475", "5100003519", "5100000581", "5100001220", "5100003864", "5100001273", "5100000199", "5100001077", "5100003743", "5100001879", "5100003258", "5100002026", "5100003848", "5100002031", "5100001882", "5100002360", "5100003469", "5100002099", "5100001953", "5100003451", "5100000322", "5100000048", "5100000401", "5100000773", "5100002602", "5100002967", "5100003962", "5100003918", "5100002782", "5100000389", "5100001869", "5100003759", "5100003432", "5100001592", "5100000799", "5100002877", "5100002366", "5100002897", "5100003608", "5100003389", "5100000958", "5100001820", "5100001723", "5100003314", "5100000819", "5100000928", "5100001865", "5100002167", "5100000904", "5100001069", "5100003495", "5100000917", "5100002559", "5100000482", "5100003835", "5100003050", "5100003882", "5100002740", "5100002645", "5100001444", "5100002518", "5100001080", "5100002852", "5100003651", "5100000838", "5100003221", "5100003647", "5100001863", "5100000202", "5100001424", "5100002695", "5100002990", "5100000822", "5100002588", "5100000525", "5100002107", "5100003600", "5100003726", "5100002938"], "gaps": []}, {"key": "rare_users", "title": "Entries by rare posters", "why": "People who normally don't post - such as senior managers - can override controls.", "weight": 2, "basis": "ISA 240: entries by unexpected or senior staff", "rule": "Entries by people who hardly ever post - for example a manager who normally only approves.", "count": 9, "docs": ["5100000531", "5100000683", "5100001125", "5100001507", "5100001531", "5100002154", "5100002589", "5100002644", "5100003908"], "gaps": []}, {"key": "after_hours", "title": "Entries made late at night", "why": "Entries made outside working hours are less likely to be reviewed.", "weight": 2, "basis": "ISA 240: entries at unusual times", "rule": "Entered late in the evening or at night (entry time CPUTM).", "count": 18, "docs": ["5100002303", "5100003528", "5100000666", "5100003127", "5100002696", "5100003517", "5100003495", "5100000136", "5100001027", "5100002790", "5100002407", "5100000254", "5100001265", "5100001755", "5100000478", "5100002589", "5100002644", "5100003908"], "gaps": []}, {"key": "weekend_holiday", "title": "Weekend and holiday postings", "why": "Postings outside normal working days avoid the usual review and controls.", "weight": 1, "basis": "ISA 240: entries at unusual times", "rule": "Postings dated on a Saturday, Sunday or public holiday.", "count": 25, "docs": ["5100000339", "5100000340", "5100000372", "5100000402", "5100000703", "5100001016", "5100001260", "5100001279", "5100001668", "5100001747", "5100001798", "5100001959", "5100002331", "5100002430", "5100002438", "5100002476", "5100002788", "5100002850", "5100002851", "5100002966", "5100003190", "5100003200", "5100003302", "5100003811", "5100003906"], "gaps": []}, {"key": "round_amounts", "title": "Round amounts", "why": "Real invoices rarely come to exact thousands; round figures suggest estimates or manual entries.", "weight": 1, "basis": "ISA 240: round numbers", "rule": "Whole multiples of 1,000 - typical for estimates, manual entries or made-up amounts.", "count": 33, "docs": ["5100001150", "5100001210", "5100001521", "5100002607", "5100002611", "5100003597", "5100003683", "5100002589", "5100002644", "5100003908", "5100000101", "5100000678", "5100000717", "5100000831", "5100000422", "5100002070", "5100002323", "5100002450", "5100000695", "5100001584", "5100003354", "5100000187", "5100002680", "5100002773", "5100003028", "5100003055", "5100000446", "5100000511", "5100001180", "5100001857", "5100001992", "5100002280", "5100002314"], "gaps": []}, {"key": "missing_description", "title": "Entries without a description", "why": "An entry nobody can explain can't be checked against a business reason.", "weight": 1, "basis": "ISA 240: little or no description", "rule": "No or almost no posting text, so nobody can tell what the entry is for.", "count": 15, "docs": ["5100000116", "5100000453", "5100000523", "5100001519", "5100002589", "5100002644", "5100002766", "5100002911", "5100003099", "5100003108", "5100003201", "5100003318", "5100003721", "5100003753", "5100003908"], "gaps": []}, {"key": "number_gaps", "title": "Gaps in document numbers", "why": "Missing numbers can mean deleted postings; completeness must be explained.", "weight": 0, "basis": "Completeness of the population", "rule": "Missing document numbers in an otherwise continuous sequence.", "count": 5, "docs": [], "gaps": [{"first_missing": "5100000948", "last_missing": "5100000948", "missing": "1"}, {"first_missing": "5100001144", "last_missing": "5100001144", "missing": "1"}, {"first_missing": "5100001322", "last_missing": "5100001322", "missing": "1"}, {"first_missing": "5100002056", "last_missing": "5100002056", "missing": "1"}, {"first_missing": "5100003030", "last_missing": "5100003030", "missing": "1"}]}], "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], "monthly": {"High": [4, 5, 0, 6, 4, 2, 1, 2, 0, 3, 1, 18], "Medium": [9, 9, 11, 5, 7, 5, 8, 16, 11, 14, 16, 5], "Low": [4, 3, 9, 12, 7, 8, 7, 4, 1, 4, 4, 4]}, "heat": {"users": ["BECKER_M", "FISCHER_L", "HOFFMANN_S", "KOCH_J", "SCHMIDT_A", "SCHULZ_T", "WEBER_K"], "tests": ["Duplicate postings", "Segregation of duties", "Post-closing entries", "Just below the approval limit", "Entries by rare posters", "Entries made late at night", "Weekend and holiday postings", "Round amounts", "Entries without a description"], "z": [[6, 8, 6, 0, 2, 0, 2], [1, 2, 2, 0, 2, 0, 1], [1, 1, 1, 2, 3, 3, 2], [7, 1, 6, 68, 7, 0, 9], [0, 0, 0, 0, 0, 9, 0], [4, 0, 2, 1, 3, 3, 5], [6, 4, 2, 5, 4, 0, 4], [6, 7, 5, 5, 1, 3, 6], [2, 1, 1, 2, 1, 3, 5]]}, "benford": {"expected": [0.301, 0.1761, 0.1249, 0.0969, 0.0792, 0.0669, 0.058, 0.0512, 0.0458], "observed": [0.2949, 0.1733, 0.1201, 0.1078, 0.0862, 0.0583, 0.0595, 0.052, 0.048], "mad": 0.005, "conformity": "close conformity", "users": {"BECKER_M": [0.2976, 0.1696, 0.1424, 0.096, 0.0784, 0.0688, 0.0592, 0.0384, 0.0496], "FISCHER_L": [0.2982, 0.1636, 0.1346, 0.0841, 0.0826, 0.0596, 0.0765, 0.0581, 0.0428], "HOFFMANN_S": [0.2666, 0.1816, 0.1182, 0.0994, 0.0951, 0.0605, 0.0634, 0.062, 0.0533], "KOCH_J": [0.2928, 0.1602, 0.0677, 0.1713, 0.1008, 0.0428, 0.0594, 0.0566, 0.0483], "SCHMIDT_A": [0.2864, 0.1686, 0.1342, 0.108, 0.0802, 0.0736, 0.0376, 0.0573, 0.054], "WEBER_K": [0.3298, 0.1928, 0.1295, 0.0828, 0.0783, 0.0482, 0.0602, 0.0377, 0.0407]}, "by_user": [{"USNAM": "KOCH_J", "postings": 729, "MAD": 0.0234, "conformity": "nonconformity", "most_overrepresented_digit": 4, "excess_share": 0.074}, {"USNAM": "WEBER_K", "postings": 668, "MAD": 0.0116, "conformity": "acceptable conformity", "most_overrepresented_digit": 1, "excess_share": 0.029}, {"USNAM": "HOFFMANN_S", "postings": 697, "MAD": 0.0106, "conformity": "acceptable conformity", "most_overrepresented_digit": 5, "excess_share": 0.016}, {"USNAM": "SCHMIDT_A", "postings": 617, "MAD": 0.0094, "conformity": "acceptable conformity", "most_overrepresented_digit": 4, "excess_share": 0.011}, {"USNAM": "FISCHER_L", "postings": 659, "MAD": 0.0085, "conformity": "acceptable conformity", "most_overrepresented_digit": 7, "excess_share": 0.018}, {"USNAM": "BECKER_M", "postings": 628, "MAD": 0.0054, "conformity": "close conformity", "most_overrepresented_digit": 3, "excess_share": 0.017}]}};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const eur = new Intl.NumberFormat("de-DE", {minimumFractionDigits:2, maximumFractionDigits:2});
+const int = new Intl.NumberFormat("en-US");
+const C = {High:"#dc2626", Medium:"#f59e0b", Low:"#cbd5e1", accent:"#2563eb"};
+const TEST = Object.fromEntries(D.tests.map(t => [t.key, t]));
+const short = t => t.title.split(" (")[0];
+Chart.defaults.font.family = "Geist, -apple-system, sans-serif"; Chart.defaults.color = "#64748b";
+Chart.defaults.plugins.legend.display = false;
+const charts = {};
+const P = D.pop, rows = D.rows, levels = {High:0, Medium:0, Low:0};
+rows.forEach(r => levels[r.level]++);
+
+$("#statusText").textContent = `${int.format(P.postings)} postings · ${P.first_date} – ${P.last_date}`;
+
+// ---------- overview ----------
+const atRisk = rows.filter(r => r.level === "High").reduce((s, r) => s + r.amount, 0);
+const kpi = (l, v, f, pct, color) => `<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div>
+  <div class="meter"><span style="width:${Math.min(100, pct)}%;background:${color}"></span></div><div class="f">${f}</div></div>`;
+$("#kpis").innerHTML = kpi("Postings tested", int.format(P.postings), `${int.format(Math.round(P.total))} € · 100% of population`, 100, C.accent)
+  + kpi("Flagged", int.format(rows.length), `${(100 * rows.length / P.postings).toFixed(1)}% of postings`, 100 * rows.length / P.postings * 5, "#64748b")
+  + kpi("High risk", levels.High, `${(100 * levels.High / rows.length).toFixed(0)}% of flagged postings`, 100 * levels.High / rows.length, C.High)
+  + kpi("Amount at high risk", `${(atRisk / 1000).toFixed(0)} k€`, `${(100 * atRisk / P.total).toFixed(1)}% of total amount`, 100 * atRisk / P.total * 5, C.High);
+
+const lead = rows[0];
+if (lead && lead.keys.length >= 3) {
+  $("#topAlertText").innerHTML = `<b>Possible management override:</b> document ${lead.doc} by ${esc(lead.user)} fails ${lead.keys.length} tests – ${lead.keys.map(k => short(TEST[k]).toLowerCase()).join(", ")}.`;
+  $("#topAlertBtn").onclick = () => openRow(lead);
+} else $("#topAlert").remove();
+
+$("#mixTotal").textContent = `${rows.length} flagged`;
+$("#mixLegend").innerHTML = Object.entries(levels).map(([l, n]) => `<div><i class="dot" style="background:${C[l]}"></i>${l}<b>${n}</b></div>`).join("");
+$("#topList").innerHTML = rows.slice(0, 6).map((r, i) => `<li data-i="${i}"><span class="score ${r.level}">${r.score}</span>
+  <div><div class="who mono">${r.doc}</div><div class="sub">${esc(r.user)} · ${r.date} · ${r.keys.length} tests</div></div><b>${eur.format(r.amount)} €</b></li>`).join("");
+document.querySelectorAll("#topList li").forEach(li => li.onclick = () => openRow(rows[+li.dataset.i]));
+
+const H = D.heat, peak = Math.max(1, ...H.z.flat());
+$("#heat").style.gridTemplateColumns = `minmax(110px,170px) repeat(${H.users.length}, minmax(0,1fr))`;
+$("#heat").innerHTML = H.z.map((row, i) => `<div class="h" title="${esc(H.tests[i])}">${esc(H.tests[i])}</div>` + row.map((n, j) => {
+    const a = n ? 0.12 + 0.88 * n / peak : 0;
+    return `<div class="c" title="${esc(H.users[j])}: ${n}" style="background:${n ? `rgba(220,38,38,${a.toFixed(2)})` : "#f8fafc"};color:${a > .5 ? "#fff" : "#334155"}">${n || ""}</div>`;
+  }).join("")).join("") + `<div></div>` + H.users.map(u => `<div class="u">${esc(u)}</div>`).join("");
+
+function drawOverview() {
+  charts.m ??= new Chart($("#cMonthly"), {type:"bar", data:{labels:D.months, datasets:["Low","Medium","High"].map(l => ({label:l, data:D.monthly[l], backgroundColor:C[l], borderRadius:4, stack:"s"}))},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:true, position:"top", align:"end", labels:{boxWidth:10, boxHeight:10}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:"#f1f5f9"}, ticks:{precision:0}}}}});
+  charts.d ??= new Chart($("#cDonut"), {type:"doughnut", data:{labels:Object.keys(levels), datasets:[{data:Object.values(levels), backgroundColor:Object.keys(levels).map(l => C[l]), borderWidth:0}]},
+    options:{maintainAspectRatio:false, cutout:"70%"}});
+}
+
+// ---------- ranking ----------
+let lvl = "";
+const users = [...new Set(rows.map(r => r.user))].sort();
+$("#user").innerHTML += users.map(u => `<option>${esc(u)}</option>`).join("");
+$("#test").innerHTML += D.tests.filter(t => t.weight).map(t => `<option value="${t.key}">${esc(short(t))}</option>`).join("");
+let shown = rows;
+function drawRows() {
+  const q = $("#q").value.trim().toLowerCase(), u = $("#user").value, t = $("#test").value;
+  shown = rows.filter(r => (!lvl || r.level === lvl) && (!u || r.user === u) && (!t || r.keys.includes(t)) &&
+    (!q || [r.doc, r.account, r.vendor, r.text, r.keys.map(k => short(TEST[k])).join(" ")].join(" ").toLowerCase().includes(q)));
+  $("#rows").innerHTML = shown.map((r, i) => `<tr data-i="${i}"><td class="n sub">${r.rank}</td><td><span class="badge ${r.level}">${r.level} · ${r.score}</span></td>
+    <td class="mono">${r.doc}</td><td>${r.date}</td><td>${esc(r.user)}</td><td>${esc(r.account)}</td><td class="n">${eur.format(r.amount)}</td>
+    <td class="tags">${r.keys.map(k => `<span>${esc(short(TEST[k]))}</span>`).join("")}</td></tr>`).join("") || `<tr><td colspan="8" class="empty">No postings match.</td></tr>`;
+  document.querySelectorAll("#rows tr[data-i]").forEach(tr => tr.onclick = () => openRow(shown[+tr.dataset.i]));
+  $("#count").textContent = `${shown.length} of ${rows.length} flagged postings`;
+}
+document.querySelectorAll("#lvl button").forEach(b => b.onclick = () => { lvl = b.dataset.l; document.querySelectorAll("#lvl button").forEach(x => x.classList.toggle("on", x === b)); drawRows(); });
+["#q", "#user", "#test"].forEach(s => $(s).addEventListener("input", drawRows));
+$("#csv").onclick = () => {
+  const head = "rank,level,points,document,posting_date,entered,time,user,approver,account,vendor,amount,failed_tests\n";
+  const body = shown.map(r => [r.rank, r.level, r.score, r.doc, r.date, r.entered, r.time, r.user, r.approver, r.account, r.vendor, r.amount, r.keys.map(k => short(TEST[k])).join("; ")]
+    .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = Object.assign(document.createElement("a"), {href:URL.createObjectURL(new Blob([head + body], {type:"text/csv"})), download:"risk_based_sample.csv"});
+  a.click();
+};
+
+// ---------- tests ----------
+const maxCount = Math.max(...D.tests.map(t => t.count));
+$("#testCards").innerHTML = D.tests.map(t => `<div class="card tcard" data-k="${t.key}"><div class="row"><span class="pts w${t.weight}">${t.weight ? t.weight + " pt" + (t.weight > 1 ? "s" : "") : "completeness"}</span>
+  <span class="n">${t.count}</span></div><h3>${esc(t.title)}</h3><div class="bar"><span style="width:${100 * t.count / maxCount}%"></span></div><div class="basis">${esc(t.basis)}</div></div>`).join("");
+document.querySelectorAll(".tcard").forEach(c => c.onclick = () => openTest(TEST[c.dataset.k]));
+
+// ---------- benford ----------
+const B = D.benford, bOpts = ["Whole ledger", ...Object.keys(B.users)];
+$("#bUser").innerHTML = bOpts.map((u, i) => `<button class="${i ? "" : "on"}" data-u="${esc(u)}">${esc(u === "Whole ledger" ? "All" : u)}</button>`).join("");
+const byUser = Object.fromEntries(B.by_user.map(u => [u.USNAM, u]));
+$("#bUsers").innerHTML = B.by_user.map(u => `<li><span class="ok ${u.conformity === "nonconformity" ? "w" : ""}">${u.conformity === "nonconformity" ? "!" : "✓"}</span>
+  <div><b>${esc(u.USNAM)}</b><div class="sub">${esc(u.conformity)} · digit ${u.most_overrepresented_digit} ${u.excess_share > 0 ? "+" : ""}${(100 * u.excess_share).toFixed(1)} pp</div></div><span class="mono sub">${u.MAD.toFixed(4)}</span></li>`).join("");
+function drawBenford(u) {
+  const obs = u === "Whole ledger" ? B.observed : B.users[u];
+  const info = u === "Whole ledger" ? {MAD:B.mad, conformity:B.conformity} : byUser[u];
+  $("#bTitle").textContent = u; $("#bMad").textContent = `MAD ${info.MAD.toFixed(4)} · ${info.conformity}`;
+  const colors = obs.map((o, i) => o - B.expected[i] > 0.02 ? C.High : C.accent);
+  if (charts.b) { charts.b.data.datasets[0].data = obs; charts.b.data.datasets[0].backgroundColor = colors; charts.b.update(); return; }
+  charts.b = new Chart($("#cBenford"), {data:{labels:[1,2,3,4,5,6,7,8,9], datasets:[
+    {type:"bar", label:"Observed", data:obs, backgroundColor:colors, borderRadius:5, order:2},
+    {type:"line", label:"Benford's law", data:B.expected, borderColor:"#0f172a", borderWidth:2, pointRadius:3, pointBackgroundColor:"#0f172a", tension:.3, order:1}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:true, position:"top", align:"end", labels:{boxWidth:10, boxHeight:10}},
+      tooltip:{callbacks:{label:c => `${c.dataset.label}: ${(100 * c.raw).toFixed(1)}%`}}},
+      scales:{x:{grid:{display:false}, title:{display:true, text:"First digit"}}, y:{grid:{color:"#f1f5f9"}, ticks:{callback:v => `${Math.round(v * 100)}%`}}}}});
+}
+document.querySelectorAll("#bUser button").forEach(b => b.onclick = () => { document.querySelectorAll("#bUser button").forEach(x => x.classList.toggle("on", x === b)); drawBenford(b.dataset.u); });
+
+// ---------- data quality ----------
+const chk = (good, label, value) => `<li><span class="ok ${good ? "" : "w"}">${good ? "✓" : "!"}</span><span>${label}</span><b class="mono">${value}</b></li>`;
+$("#popChecks").innerHTML = chk(true, "Postings in extract", int.format(P.postings)) + chk(true, "Total amount", eur.format(P.total) + " €")
+  + chk(true, "Document range", `${P.first_document} – ${P.last_document}`) + chk(P.missing_numbers === 0, "Missing document numbers", P.missing_numbers)
+  + chk(P.duplicate_keys === 0, "Duplicate document keys", P.duplicate_keys) + chk(P.months_covered === 12, "Months covered", `${P.months_covered} / 12`)
+  + chk(true, "Users · G/L accounts", `${P.users} · ${P.accounts}`);
+$("#popTotal").textContent = `${int.format(P.postings)} postings`;
+function drawPop() {
+  charts.p ??= new Chart($("#cPop"), {type:"bar", data:{labels:D.months, datasets:[{data:P.per_month, backgroundColor:C.accent, borderRadius:5}]},
+    options:{maintainAspectRatio:false, scales:{x:{grid:{display:false}}, y:{grid:{color:"#f1f5f9"}}}}});
+}
+
+// ---------- method ----------
+$("#rules").innerHTML = D.tests.map(t => `<tr style="cursor:default"><td><b>${esc(t.title)}</b></td><td style="white-space:normal">${esc(t.rule)}</td>
+  <td class="n"><span class="pts w${t.weight}">${t.weight}</span></td><td style="white-space:normal">${esc(t.basis)}</td></tr>`).join("");
+
+// ---------- detail drawer ----------
+function drawer(kicker, title, body) {
+  $("#dKicker").textContent = kicker; $("#dTitle").textContent = title; $("#dBody").innerHTML = body;
+  document.body.classList.add("open"); $("#dClose").focus();
+}
+const closeDrawer = () => document.body.classList.remove("open");
+$("#dClose").onclick = closeDrawer; $("#bg").onclick = closeDrawer;
+document.addEventListener("keydown", e => e.key === "Escape" && closeDrawer());
+function openRow(r) {
+  drawer(`Posting · rank ${r.rank} of ${rows.length}`, `Document ${r.doc}`,
+    `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px"><span class="score ${r.level}" style="width:44px;height:36px;font-size:16px">${r.score}</span>
+     <div><b>${r.level} risk</b><div class="sub">${r.keys.length} failed test${r.keys.length > 1 ? "s" : ""}</div></div><b style="margin-left:auto;font-size:18px">${eur.format(r.amount)} €</b></div>
+     <dl><dt>Posting date</dt><dd>${r.date}</dd><dt>Entered</dt><dd>${r.entered || "–"} ${r.time ? "at " + esc(r.time) : ""}</dd>
+     <dt>Entered by</dt><dd>${esc(r.user)}</dd><dt>Approved by</dt><dd>${esc(r.approver)}</dd><dt>G/L account</dt><dd>${esc(r.account)}</dd>
+     <dt>Vendor</dt><dd>${esc(r.vendor)}</dd><dt>Text</dt><dd>${r.text ? esc(r.text) : '<span class="sub">— no description —</span>'}</dd></dl>
+     <h3 style="font-size:13px;margin:0 0 8px">Why it was flagged</h3>` +
+    r.keys.map(k => TEST[k]).sort((a, b) => b.weight - a.weight).map(t => `<div class="hit"><div class="row"><b>${esc(t.title)}</b><span class="pts w${t.weight}">+${t.weight}</span></div>
+     <p>${esc(t.why)}</p><p style="color:#94a3b8">${esc(t.basis)}</p></div>`).join(""));
+}
+function openTest(t) {
+  const byDoc = Object.fromEntries(rows.map(r => [r.doc, r]));
+  const list = t.key === "number_gaps"
+    ? `<ul class="list">${t.gaps.map(g => `<li style="cursor:default"><span class="mono">${g.first_missing}${g.first_missing !== g.last_missing ? " – " + g.last_missing : ""}</span><span class="sub">${g.missing} missing</span></li>`).join("")}</ul>`
+    : `<ul class="list">${t.docs.map(d => byDoc[d]).filter(Boolean).map(r => `<li data-doc="${r.doc}"><span class="mono">${r.doc}</span><span class="sub">${esc(r.user)} · ${r.date}</span><b>${eur.format(r.amount)} €</b></li>`).join("")}</ul>`;
+  drawer(`Test · ${t.weight ? t.weight + " risk point" + (t.weight > 1 ? "s" : "") : "completeness"}`, t.title,
+    `<p style="margin-top:0">${esc(t.why)}</p><dl><dt>Rule</dt><dd>${esc(t.rule)}</dd><dt>Basis</dt><dd>${esc(t.basis)}</dd><dt>Findings</dt><dd><b>${t.count}</b></dd></dl>` + list);
+  document.querySelectorAll("#dBody li[data-doc]").forEach(li => li.onclick = () => openRow(byDoc[li.dataset.doc]));
+}
+
+// ---------- views ----------
+const titles = {overview:"Overview", ranking:"Risk ranking", tests:"Tests", benford:"Benford's law", quality:"Data quality", method:"Method"};
+function show() {
+  const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
+  document.querySelectorAll("aside nav a").forEach(a => a.classList.toggle("on", a.dataset.view === v));
+  $("#crumb").textContent = titles[v]; closeDrawer(); window.scrollTo(0, 0);
+  if (v === "overview") drawOverview();
+  if (v === "ranking") drawRows();
+  if (v === "benford" && !charts.b) drawBenford("Whole ledger");
+  if (v === "quality") drawPop();
+}
+window.addEventListener("hashchange", show); show();
+</script>
+</body></html>
